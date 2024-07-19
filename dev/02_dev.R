@@ -38,6 +38,7 @@ golem::add_module(name = "5_report")
 ## Creates fct_* and utils_*
 golem::add_fct("helpers")
 golem::add_fct(name = "data", module = "3_get")
+golem::add_utils(name = "files", module = "4_validate_1_validate")
 
 ## External resources
 ## Creates .js and .css files at inst/app/www
