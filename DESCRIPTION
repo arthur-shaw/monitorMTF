@@ -1,0 +1,44 @@
+Package: monitorMTF
+Title: App to monitor MTF surveys
+Version: 0.0.0.9000
+Authors@R: 
+    person(given = "Arthur",
+           family = "Shaw",
+           role = c("aut", "cre"),
+           email = "jashaw2002@gmail.com")
+Description: What the package does (one paragraph).
+License: MIT + file LICENSE
+Imports: 
+    bsicons,
+    bslib,
+    config (>= 0.3.2),
+    desc,
+    dplyr,
+    fontawesome,
+    fs,
+    gargoyle (>= 0.0.1),
+    glue,
+    golem (>= 0.4.1),
+    haven,
+    htmltools,
+    purrr,
+    R6,
+    rappdirs,
+    reactable,
+    rlang,
+    shiny (>= 1.8.1.1),
+    shinyFeedback,
+    shinyjs,
+    susoapi (>= 0.2.0),
+    susoflows (>= 0.1.0),
+    susoreview (>= 0.1.0),
+    waiter,
+    zip
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 7.3.1
+Remotes: 
+    github::ColinFay/gargoyle,
+    github::arthur-shaw/susoapi,
+    github::arthur-shaw/susoreview,
+    github::arthur-shaw/susoflows
