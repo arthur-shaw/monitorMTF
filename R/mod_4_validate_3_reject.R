@@ -50,7 +50,7 @@ mod_4_validate_3_reject_server <- function(id, parent, info){
       if (decisions_file$exists == FALSE) {
 
         shiny::updateActionButton(
-          id = "run",
+          inputId = "run",
           disabled = TRUE
         )
 
@@ -70,7 +70,7 @@ mod_4_validate_3_reject_server <- function(id, parent, info){
       if (decisions_file$exists == FALSE) {
 
         shiny::updateActionButton(
-          id = "run",
+          inputId = "run",
           disabled = TRUE
         )
 
