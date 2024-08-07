@@ -438,7 +438,7 @@ create_attributes <- function(
   )
 
   # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-  # Connected to electricty
+  # Connected to electricity
   # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 
   elec_sources <- tibble::tribble(
@@ -470,7 +470,7 @@ create_attributes <- function(
   )
 
   # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-  # Own asset that uses electricty
+  # Own asset that uses electricity
   # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 
   attrib_owns_elec_asset <- 

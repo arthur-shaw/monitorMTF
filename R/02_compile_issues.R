@@ -25,7 +25,7 @@ create_issues <- function(attributes) {
     type = 1,
     desc = "Main source unanswered",
     comment = paste0(
-      "ERROR: Main electricity source of electricty left unanswered. ",
+      "ERROR: Main electricity source of electricity left unanswered. ",
       "First, record an answer for question 162 in section C. ",
       "Then, resubmit the interview"
     )
@@ -144,7 +144,7 @@ create_issues <- function(attributes) {
   dplyr::bind_rows()
 
   # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-  # Owns asset that uses electricty, but has no electricity access
+  # Owns asset that uses electricity, but has no electricity access
   # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 
   issue_elect_asset_no_elec <- susoreview::create_issue(
