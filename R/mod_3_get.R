@@ -210,6 +210,13 @@ mod_3_get_server <- function(id, info){
       # change flag about whether data downloaded
       info$downloaded_data <- TRUE
 
+      # set paths to data directories
+      info$data_dir_teams <- dirs$teams
+      info$data_dir_hhold_c <- dirs$hhold_c
+      info$data_dir_comm_c <- dirs$comm_c
+      info$data_dir_educ_c <- dirs$educ_c
+      info$data_dir_health_c <- dirs$health_c
+
       # write updated info to disk
       info$write()
 

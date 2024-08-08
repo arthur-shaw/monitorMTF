@@ -42,6 +42,12 @@ info <- R6::R6Class(
     qnrs_health = NULL,
     # data downloded
     downloaded_data = NULL,
+    # data paths
+    data_dir_teams = NULL,
+    data_dir_hhold_c = NULL,
+    data_dir_comm_c = NULL,
+    data_dir_educ_c = NULL,
+    data_dir_health_c = NULL,
 
     #' @description
     #' Read past R6 values from disk

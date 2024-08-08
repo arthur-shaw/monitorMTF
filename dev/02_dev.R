@@ -33,12 +33,15 @@ golem::add_module(name = "4_validate_2_edit")
 golem::add_module(name = "4_validate_3_reject")
 golem::add_module(name = "4_validate_4_report")
 golem::add_module(name = "5_report")
+golem::add_module(name = "5_report_1_completeness")
+golem::add_module(name = "5_report_2_quality")
 
 ## Add helper functions ----
 ## Creates fct_* and utils_*
 golem::add_fct("helpers")
 golem::add_fct(name = "data", module = "3_get")
 golem::add_utils(name = "files", module = "4_validate_1_validate")
+golem::add_utils(name = "files", module = "5_report")
 
 ## External resources
 ## Creates .js and .css files at inst/app/www

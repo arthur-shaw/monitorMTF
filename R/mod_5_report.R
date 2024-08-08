@@ -10,6 +10,21 @@
 mod_5_report_ui <- function(id){
   ns <- NS(id)
   tagList(
+
+    bslib::accordion(
+      id = ns("reports"),
+      bslib::accordion_panel(
+        title = "Completeness",
+        value = "completeness_panel",
+        mod_5_report_1_completeness_ui(ns("5_report_1_completeness_1"))
+      ),
+      bslib::accordion_panel(
+        title = "Quality",
+        value = "quality_panel",
+        mod_5_report_2_quality_ui(ns("5_report_2_quality_1"))
+      )
+
+    )
  
   )
 }
@@ -21,6 +36,21 @@ mod_5_report_server <- function(id, info){
   moduleServer( id, function(input, output, session){
     ns <- session$ns
  
+    # ==========================================================================
+    # load server logic definitions of child modules
+    # ==========================================================================
+
+    mod_5_report_2_quality_server(
+      id = "5_report_2_quality_1",
+      parent = session,
+      info = info
+    )
+    mod_5_report_1_completeness_server(
+      id = "5_report_1_completeness_1",
+      parent = session,
+      info = info
+    )
+
   })
 }
     
