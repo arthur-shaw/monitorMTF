@@ -29,6 +29,114 @@ mod_5_report_2_quality_ui <- function(id){
 mod_5_report_2_quality_server <- function(id, parent, info){
   moduleServer( id, function(input, output, session){
     ns <- session$ns
+ 
+    # ==========================================================================
+    # initialize page
+    # ==========================================================================
+
+    # create a reactive container for these files attributes so that they can:
+    # change during a single session
+    # and be accessible to different scopes
+    report <- shiny::reactiveValues(
+      data_dir = NA_character_,
+      data_exist = FALSE,
+      output_path = NA_character_
+    )
+
+    gargoyle::on("load_project", {
+
+      report$data_dir <- fs::path(
+        info$proj_dir, "01_data", "01_hhold", "02_combined"
+      )
+
+      report$output_path <- fs::path(
+        info$proj_dir, "03_reports", "02_quality", "report_quality.html"
+      )
+
+      main_file_path <- fs::path(
+        report$data_dir, "MTF_2023HH_Questionnaire.dta"
+      )
+
+      report$data_exist <- fs::file_exists(main_file_path)
+
+      if (report$data_exist == FALSE) {
+
+        shiny::updateActionButton(
+          inputId = "create",
+          disabled = TRUE
+        )
+
+      }
+
+    })
+
+    gargoyle::on("downloaded_data", {
+
+      report$exist <- TRUE
+
+      if (report$data_exist == FALSE) {
+
+        shiny::updateActionButton(
+          inputId = "create",
+          disabled = FALSE
+        )
+
+      }
+
+    })
+
+    # ==========================================================================
+    # react to create button
+    # ==========================================================================
+
+    shiny::observeEvent(input$create, {
+
+      # ------------------------------------------------------------------------
+      # prepare file system
+      # ------------------------------------------------------------------------
+
+      dirs <- create_report_dirs(proj_dir = info$proj_dir)
+
+      # ------------------------------------------------------------------------
+      # check that Quarto is installed/visible on PATH
+      # ------------------------------------------------------------------------
+
+      # check
+      quarto_installed <- !is.null(quarto::quarto_path())
+
+      # alert user if there are problems
+      # TODO
+
+      # ------------------------------------------------------------------------
+      # render document
+      # ------------------------------------------------------------------------
+
+      # compose parameter list
+      doc_params <- list(
+        data_dir = report$data_dir
+      )
+
+      # render document
+      quarto::quarto_render(
+        # input = path to report template file in package
+        input = system.file(
+          "R", "report_quality.qmd",
+          package = desc::desc_get_field("Package")
+        ),
+        # output = dedicated folder in the app's file system
+        execute_dir = dirs$quality,
+        # output_file = fs::path(dirs$quality, "report_quality.html"),
+        execute_params = doc_params
+      )
+
+    })
+
+    # ==========================================================================
+    # react to download button
+    # ==========================================================================
+
+    # TODO: need download handler function
+
   })
 }
     
