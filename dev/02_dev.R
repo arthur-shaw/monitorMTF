@@ -33,6 +33,8 @@ golem::add_module(name = "4_validate_2_edit")
 golem::add_module(name = "4_validate_3_reject")
 golem::add_module(name = "4_validate_4_report")
 golem::add_module(name = "5_report")
+golem::add_module(name = "5_report_1_completeness")
+golem::add_module(name = "5_report_2_quality")
 
 ## Add helper functions ----
 ## Creates fct_* and utils_*
