@@ -117,16 +117,10 @@ mod_5_report_2_quality_server <- function(id, parent, info){
       )
 
       # render document
-      quarto::quarto_render(
-        # input = path to report template file in package
-        input = system.file(
-          "R", "report_quality.qmd",
-          package = desc::desc_get_field("Package")
-        ),
-        # output = dedicated folder in the app's file system
-        execute_dir = dirs$quality,
-        # output_file = fs::path(dirs$quality, "report_quality.html"),
-        execute_params = doc_params
+      render_report(
+        report_type = "quality",
+        proj_dir = info$proj_dir,
+        params = doc_params
       )
 
     })
