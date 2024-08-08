@@ -1,0 +1,33 @@
+---
+format: html
+toc: true
+toc-depth: 2
+embed-resources: true
+params:
+  data_dir: ""
+---
+
+```{r}
+#| label: load data
+
+```
+
+# Response rate
+
+
+
+# Access to electricity
+
+### Capacity
+### Availability
+### Reliability
+### Affordability
+### Formality
+
+# Access to modern cooking solutions
+
+### Exposure
+### Convenience
+### Safety
+### Affordability
+### Availability

@@ -32,3 +32,28 @@ create_report_dirs  <- function(proj_dir) {
   return(dirs)
 
 }
+
+copy_report_resources(
+  report_type,
+  input_dir,
+  output_dir
+) {
+
+  # copy resources
+  if (report_type == "completeness") {
+
+  } else if (report_type == "quality") {
+
+  }
+
+}
+
+render_report <- function(
+  resource_input_dir,
+  output_dir,
+  params
+) {
+
+
+
+}
