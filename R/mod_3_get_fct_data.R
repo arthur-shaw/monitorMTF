@@ -41,6 +41,11 @@ create_data_dirs <- function(proj_dir) {
 
   root_data_dir <- fs::path(proj_dir, "01_data")
 
+  # metadata
+  meta_dir <- fs::path(root_data_dir, "00_meta")
+  teams_dir <- fs::path(meta_dir, "01_team_composition")
+  fs::dir_create(path = c(meta_dir, teams_dir))
+
   # household
   hhold_root_dir <- fs::path(root_data_dir, "01_hhold")
   hhold_dirs <- construct_data_paths(dir = hhold_root_dir)
@@ -63,6 +68,8 @@ create_data_dirs <- function(proj_dir) {
 
   # collect paths to created directories
   dirs <- list(
+    # meta
+    teams = teams_dir,
     # hhold
     hhold_r = hhold_dirs[1],
     hhold_dl = hhold_dirs[2],
@@ -384,6 +391,52 @@ provision_data <- function(
   combine_and_save_all_dta(
     dir_in = qnr_dirs[[paste0(qnr_name, "_dl")]],
     dir_out = qnr_dirs[[paste0(qnr_name, "_c")]]
+  )
+
+}
+
+#' Get team composition
+#'
+#' First, fetch composition. Then, write to labelled Stata file.
+#'
+#' @param dir Character. Directory where data should be stored.
+#' @inheritParams susoflows::download_matching
+#'
+#' @importFrom susoapi get_interviewers
+#' @importFrom labelled var_label
+#' @importFrom haven write_dta
+#' @importFrom fs path
+#'
+#' @noRd
+get_team_composition <- function(
+  dir,
+  server,
+  workspace,
+  user,
+  password
+) {
+
+  # construct team composition
+  team_composition <- susoapi::get_interviewers(
+    server = server,
+    workspace = workspace,
+    user = user,
+    password = password
+  )
+
+  # label columns for easier comprehension
+  labelled::var_label(team_composition) <- list(
+    UserId = "Interviewer GUID",
+    UserName = "Interviewer user name",
+    SupervisorId = "Supervisor user GUID",
+    SupervisorName = "Supervisor user name",
+    Role = "Role: Interviewer, Supervisor"
+  )
+
+  # write to disk
+  haven::write_dta(
+    data = team_composition,
+    path = fs::path(dir, "team_composition.dta")
   )
 
 }

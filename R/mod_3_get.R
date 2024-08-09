@@ -47,6 +47,12 @@ mod_3_get_ui <- function(id){
           shiny::downloadButton(
             outputId = ns("health"),
             label = "Health facility"
+          ),
+          shiny::br(),
+          shiny::br(),
+          shiny::downloadButton(
+            outputId = ns("teams"),
+            label = "Team composition"
           )
         )
       )
@@ -77,6 +83,7 @@ mod_3_get_server <- function(id, info){
         shinyjs::disable(id = "comm")
         shinyjs::disable(id = "educ")
         shinyjs::disable(id = "health")
+        shinyjs::disable(id = "teams")
 
         # close accordion panel
         bslib::accordion_panel_close(
@@ -92,6 +99,7 @@ mod_3_get_server <- function(id, info){
         shinyjs::enable(id = "comm")
         shinyjs::enable(id = "educ")
         shinyjs::enable(id = "health")
+        shinyjs::enable(id = "teams")
 
         # close accordion panel
         bslib::accordion_panel_close(
@@ -134,6 +142,9 @@ mod_3_get_server <- function(id, info){
       # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
       # delete stale files from previous session
       # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+
+      # meta
+      delete_stale_data(dir = dirs$teams)
 
       # household
       delete_stale_data(dir = dirs$hhold_dl)
@@ -195,6 +206,19 @@ mod_3_get_server <- function(id, info){
         qnr_dirs = dirs
       )
 
+      # team composition
+      waiter::waiter_show(html = shiny::tagList(
+        waiter::spin_ring(),
+        shiny::h4("Downloading team composition data")
+      ))
+      get_team_composition(
+        dir = dirs$teams,
+        server = info$server,
+        workspace = info$workspace,
+        user = info$user,
+        password = info$password
+      )
+
       # ------------------------------------------------------------------------
       # signal that process is complete
       # ------------------------------------------------------------------------
@@ -237,6 +261,7 @@ mod_3_get_server <- function(id, info){
       shinyjs::enable(id = "comm")
       shinyjs::enable(id = "educ")
       shinyjs::enable(id = "health")
+      shinyjs::enable(id = "teams")
 
       bslib::accordion_panel_open(
         id = "data_downloads",

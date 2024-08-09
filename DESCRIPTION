@@ -21,6 +21,7 @@ Imports:
     golem (>= 0.4.1),
     haven,
     htmltools,
+    labelled,
     purrr,
     R6,
     rappdirs,
