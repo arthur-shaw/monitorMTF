@@ -19,6 +19,7 @@ Imports:
     gargoyle (>= 0.0.1),
     glue,
     golem (>= 0.4.1),
+    gt,
     haven,
     htmltools,
     labelled,

@@ -1,15 +1,290 @@
 ---
 format: html
 toc: true
-toc-depth: 2
+toc-depth: 3
 embed-resources: true
 params:
   proj_dir: ""
   data_dir: ""
+execute: 
+  echo: false
+  error: false
+  warning: false
 ---
 
 ```{r}
+#| label: loading magrittr pipe
+library(dplyr)
+```
+```{r}
+#| label: load function definitions
+
+#' Summarize variables that start with `n_`
+#'
+#' @description
+#' Computes a sum for variables that start with `_n`
+#' 
+#' @param df Data frame.
+#' @param by Character, atomic. Name of group variable for summarize.
+#' @param overall_txt Character, atomic. Text for overall stats in table.
+#' 
+#' @return Data frame.
+#'
+#' @importFrom dplyr `%>%` group_by summarise across starts_with ungroup mutate
+#' @importFrom rlang data_sym
+summarize_vars <- function(
+  df,
+  by = "",
+  overall_txt = "Overall"
+) {
+
+  df_summarized <- df %>%
+    {
+      if (by != "") {
+        dplyr::group_by(
+          .data = .,
+          !!rlang::data_sym(by)
+        )
+      } else {
+        .
+      }
+    } |>
+    dplyr::summarise(
+      dplyr::across(
+        .cols = dplyr::starts_with("n_"),
+        .fns = ~ sum(.x, na.rm = TRUE)
+      )
+    ) %>%
+    {
+      if (by != "") {
+        dplyr::ungroup(x = .)
+      } else {
+        dplyr::mutate(
+          .data = .,
+          supervisor = overall_txt
+        )
+      }
+    }
+
+  return(df_summarized)
+
+}
+
+#' Compute percentage of indicator
+#'
+#' @param df Data frame
+#' @param num Bare variable name. Numerator in percentage calculation.
+#' @param denom Bare variable name. Denominator in percentage calculation.
+#'
+#' @return Data frame
+#'
+#' @importFrom rlang enquo as_label englue
+#' @importFrom dplyr mutate case_when
+compute_pct <- function(df, num, denom) {
+
+  # construct new variable name
+  # capturing bare name
+  # replacing `n_` prefix with `pct_`
+  pct_var_name <- rlang::enquo(num) |>
+    rlang::as_label() |>
+    sub(
+      pattern = "n_",
+      replacement = "pct_"
+    )
+
+  # compute a percentage
+  # if denominator is non-zero, traditional computation
+  # if denominator is zero or NA, NA
+  df_w_pct <- df |>
+    dplyr::mutate(
+      !!rlang::englue("{pct_var_name}") := dplyr::case_when(
+        {{denom}} > 0 ~ {{num}} / {{denom}},
+        {{denom}} == 0 ~ NA_real_,
+        is.na({{denom}}) ~ NA_real_
+      )
+    )
+
+  return(df_w_pct)
+
+}
+
+
+reactable_style <- reactable::reactableTheme(
+  headerStyle = list(color = "#ffffff", background = "#6f3996")
+)
+```
+
+```{r}
 #| label: load data
+
+files <- c(
+  "MTF_2023HH_Questionnaire.dta",
+  "SEC_C_GENERATOR.dta",
+  "SEC_C_RECHAR_BA.dta",
+  "Solar_C_Device.dta",
+  "appliances.dta",
+  "cookstoves.dta",
+  "fuel_consumption.dta"
+)
+
+names <- c(
+  "hholds",
+  "generators",
+  "batteries",
+  "solar_systems",
+  "appliances",
+  "stoves",
+  "fuels"
+)
+
+# create a list of data
+# set the names of each element of the list to allow accessing it by name
+dfs_raw <- files |>
+	purrr::map(.f = ~ fs::path(params$data_dir, .x) |> haven::read_dta()) |>
+	setNames(nm = names)
+
+interview_actions <- fs::path(params$data_dir, "interview__actions.dta") |>
+	haven::read_dta()
+
+supervisor_interviewer <- fs::path(
+    params$proj_dir, "01_data", "00_meta", "01_team_composition",
+    "team_composition.dta"
+  ) |>
+ # ingest
+	haven::read_dta() |>
+  # remove any archived users
+  dplyr::filter(IsArchived == 0) |>
+  # keep supervisora nd interviewer columns, renaming them to match
+  # names in the df of who is responsible for each interview
+	dplyr::select(
+    supervisor = SupervisorName,
+    interviewer = UserName
+  )
+
+```
+
+```{r}
+#| label: identify field staff responsible
+
+interviews_who_is_responsible <- interview_actions |>
+	dplyr::group_by(interview__id, interview__key) |>
+  # select the last completion event
+ # complete
+	dplyr::filter(action == 3) |>
+	# last
+	dplyr::filter(dplyr::row_number() == dplyr::n()) |>
+  dplyr::ungroup() |>
+	dplyr::select(
+    interview__id, interview__key,
+    interviewer = originator,
+    supervisor = responsible__name
+  )
+
+```
+
+```{r}
+#| label: identify completed interviews
+interviews_completed <- dfs_raw[[1]] |>
+    dplyr::filter(
+      # found household
+      SEC_Cov_Q01 == 1 &
+      # have eligible, adult repsondent
+      SEC_Cov_Q03 == 1 &
+      # have consent
+      SEC_Cov_Q05 == 1
+    ) |>
+    dplyr::select(interview__id, interview__key)
+```
+
+```{r}
+#| label: create data frame of supervisors, interviewers, and their interviews
+
+supervisor_interviewer_interview <- supervisor_interviewer |>
+	dplyr::left_join(
+    y = interviews_who_is_responsible,
+    by = c("supervisor", "interviewer")
+  ) |>
+	dplyr::select(supervisor, interviewer, interview__id, interview__key)
+
+```
+
+```{r}
+#| label: filtered data
+filter_data <- function(survey_df, completed_df) {
+
+  # data for interviews that are completed
+  df_filtered <- survey_df |>
+    dplyr::semi_join(completed_df, by = c("interview__id", "interview__key"))
+  
+  return(df_filtered)
+
+}
+
+dfs_filtered <- purrr::map(
+  .x = dfs_raw,
+  .f = ~ filter_data(survey_df = .x, completed_df = interviews_completed)
+)
+```
+
+```{r}
+#| label: create data for main electricity and stoves
+
+# ------------------------------------------------------------------------------
+# Electricity
+# ------------------------------------------------------------------------------
+
+main_generator <- dfs_filtered$generators |>
+  # identify the main system as the one listed first
+  dplyr::group_by() |>
+  dplyr::filter(dplyr::row_number() == 1) |>
+  dplyr::ungroup()
+
+main_battery <- dfs_filtered$batteries |>
+  # identify the main system as the one listed first
+  dplyr::group_by() |>
+  dplyr::filter(dplyr::row_number() == 1) |>
+  dplyr::ungroup()
+
+main_solar_system <- dfs_filtered$hholds |>
+  # identify main solar system
+  dplyr::select(
+    interview__id, interview__key, SEC_C_Q141,
+    # attributes of main system
+    # hours of electricity
+    SEC_C_Q148, SEC_C_Q149
+  ) |>
+  dplyr::left_join(
+    dfs_filtered$solar_systems,
+    by = c("interview__id", "interview__key")
+  ) |>
+  dplyr::filter(
+    # if solar systems, one that is the main one
+    Solar_C_Device__id == SEC_C_Q141 |
+    # if no solar system, retain a row anyway
+    is.na(Solar_C_Device__id)
+  ) |>
+  # select questions for which to generate attributes
+  dplyr::select(
+    interview__id, interview__key, SEC_C_Q141,
+    # items powered
+    SEC_C_Q122, SEC_C_Q123, SEC_C_Q124, dplyr::starts_with("SEC_C_Q125__"), SEC_C_Q125_oth,
+    # hours of electricity
+    SEC_C_Q148, SEC_C_Q149,
+    # hours used for lighting and other applications each day
+    SEC_C_Q138
+  )
+
+# ----------------------------------------------------------------------------
+# Cookstove
+# ----------------------------------------------------------------------------
+
+main_stove <- dfs_filtered$hholds |>
+  # identify main cookstove
+  dplyr::select(interview__id, SEC_G_Q04) |>
+  # combine household and cookstove data
+  dplyr::left_join(dfs_filtered$stoves, by = "interview__id") |>
+  # select main stove from roster
+  dplyr::filter(cookstoves__id == SEC_G_Q04)
 
 ```
 
@@ -20,15 +295,1556 @@ params:
 # Access to electricity
 
 ### Capacity
+
+#### No electricity
+
+```{r}
+#| label: no electricity
+
+no_electricity_counts <- supervisor_interviewer_interview |>
+	dplyr::left_join(dfs_filtered$hholds, by = c("interview__id", "interview__key")) |>
+	dplyr::mutate(
+    n_obs = !is.na(interview__id),
+    n_no_electricity = (
+      # main source: none
+      (SEC_C_Q162 == 111)
+      |
+      # "no" to all other sources
+      (
+        SEC_C_Q02 == 0 & # national grid
+        SEC_C_Q40 == 0 & # mini grid
+        SEC_C_Q78 == 0 & # generator
+        SEC_C_Q100 == 0 & # rechargeable batteries
+        SEC_C_Q117 == 0 # solar
+      )
+    )
+  )
+  
+no_electricity_by_team <- no_electricity_counts |>
+  summarize_vars(by = "supervisor")
+	
+no_electricity_overall <- no_electricity_counts |>
+  summarize_vars(overall_txt = "Overall")
+
+no_electricity_stats <- no_electricity_overall |>
+	dplyr::bind_rows(no_electricity_by_team) |>
+  compute_pct(num = n_no_electricity, denom = n_obs) |>
+	dplyr::select(supervisor, n_obs, pct_no_electricity)
+
+no_electricity_table <- no_electricity_stats |>
+	gt::gt(rowname_col = "supervisor") |>
+	gt::tab_header(title = "No electricity") |>
+  gt::cols_label(
+    n_obs = gt::html("Total interviews<br>(N)"),
+    pct_no_electricity = gt::html("No electricity<br>(%)")
+  ) |>
+  gt::fmt_integer(columns = c(n_obs)) |>
+	gt::fmt_percent(columns = c(pct_no_electricity), decimals = 1) |>
+	gt::sub_missing() |>
+	gt::tab_options(heading.background.color = "#6f3996")
+
+no_electricity_table
+```
+
+#### Prevalence of other devices
+
+```{r}
+#| label: prevalence of other devices
+
+solar_oth_device_counts <- supervisor_interviewer_interview |>
+  dplyr::left_join(
+    y = main_solar_system,
+    by = c("interview__id", "interview__key")
+  )	 |>
+	dplyr::mutate(
+    n_solar = !is.na(SEC_C_Q141),
+    n_oth_devices = SEC_C_Q125__555 == 1
+  )
+
+solar_oth_device_by_team <- solar_oth_device_counts |>
+  summarize_vars(by = "supervisor")
+
+solar_oth_device_overall <- solar_oth_device_counts |>
+	summarize_vars(overall_txt = "Overall")
+
+solar_oth_device_stats <- solar_oth_device_by_team |>
+	dplyr::bind_rows(solar_oth_device_overall) |>
+	compute_pct(num = n_oth_devices, denom = n_oth_devices) |>
+	dplyr::select(supervisor, n_solar, pct_oth_devices)
+
+solar_oth_device_table <- solar_oth_device_stats |>
+	gt::gt(rowname_col = "supervisor") |>
+  gt::tab_header(title = "Prevalence of 'other' devices") |>
+	gt::cols_label(
+    n_solar = gt::html("Total main solar devices<br>(N)"),
+    pct_oth_devices = gt::html("Other devices<br>%")
+  ) |>
+  gt::fmt_integer(columns = c(n_solar)) |>
+	gt::fmt_percent(columns = c(pct_oth_devices), decimals = 1) |>
+	gt::sub_missing() |>
+	gt::tab_options(heading.background.color = "#6f3996")
+
+solar_oth_device_table
+```
+
+#### Details of other devices
+
+```{r}
+oth_devices_txt <- main_solar_system |>
+  dplyr::select(SEC_C_Q125_oth) |>
+  dplyr::filter(!is.na(SEC_C_Q125_oth) & SEC_C_Q125_oth != "")
+	
+if (nrow(oth_devices_txt) > 0) {
+
+  oth_devices_txt_table <- reactable::reactable(
+    data = oth_devices_txt,
+    columns = list(
+      SEC_C_Q125_oth = reactable::colDef(name = "Other device text")
+    ),
+    striped = TRUE,
+    theme = reactable_style
+  )
+
+} else {
+  oth_devices_txt_table <- "No 'other' devices found."
+}
+
+oth_devices_txt_table
+```
+
 ### Availability
+
+#### Top- / bottom-coded
+
+```{r}
+#| label: top- or bottom-coded values
+grid_coding <- supervisor_interviewer_interview |>
+  dplyr::left_join(
+    y = dfs_filtered$hholds,
+    by = c("interview__id", "interview__key")
+  )	 |>
+  dplyr::mutate(
+    source = "grid",
+    n_obs = (SEC_C_Q02 == 1),
+    bottom_day = SEC_C_Q27 == 0,
+    top_day = SEC_C_Q27 == 24,
+    bottom_night = SEC_C_Q28 == 0,
+    top_night = SEC_C_Q28 == 4,
+    val_day = dplyr::if_else(
+      condition = SEC_C_Q27 != 888,
+      true = SEC_C_Q27,
+      false = NA_integer_
+    ),
+    val_night = dplyr::if_else(
+      condition = SEC_C_Q28 != 888,
+      true = SEC_C_Q28,
+      false = NA_integer_
+    ),
+  ) |>
+  dplyr::select(
+    supervisor, interview__id, interview__key, source,
+    n_obs, dplyr::matches("^(top|bottom)"),
+    val_day, val_night
+  )
+
+mini_grid_coding <- supervisor_interviewer_interview |>
+  dplyr::left_join(
+    y = dfs_filtered$hholds,
+    by = c("interview__id", "interview__key")
+  )	 |>
+  dplyr::mutate(
+    source = "mini-grid",
+    n_obs = (SEC_C_Q40 == 1),
+    bottom_day = SEC_C_Q65 == 0,
+    top_day = SEC_C_Q65 == 24,
+    bottom_night = SEC_C_Q66 == 0,
+    top_night = SEC_C_Q66 == 4,
+    val_day = dplyr::if_else(
+      condition = SEC_C_Q65 != 888,
+      true = SEC_C_Q65,
+      false = NA_integer_
+    ),
+    val_night = dplyr::if_else(
+      condition = SEC_C_Q66 != 888,
+      true = SEC_C_Q66,
+      false = NA_integer_
+    )
+  ) |>
+  dplyr::select(
+    supervisor, interview__id, interview__key, source,
+    n_obs, dplyr::matches("^(top|bottom)"),
+    val_day, val_night
+  )
+  
+generator_coding <-  supervisor_interviewer_interview |>
+  dplyr::left_join(
+    y = dfs_filtered$hholds,
+    by = c("interview__id", "interview__key")
+  ) |>
+  dplyr::left_join(
+    y = main_generator,
+    by = c("interview__id", "interview__key")
+  )	 |>
+  dplyr::mutate(
+    source = "generator",
+    n_obs = (SEC_C_Q78 == 1),
+    bottom_day = SEC_C_Q93 == 0,
+    top_day = SEC_C_Q93 == 24,
+    bottom_night = SEC_C_Q94 == 0,
+    top_night = SEC_C_Q94 == 4,
+    val_day = dplyr::if_else(
+      condition = SEC_C_Q93 != 888,
+      true = SEC_C_Q93,
+      false = NA_integer_
+    ),
+    val_night = dplyr::if_else(
+      condition = SEC_C_Q94 != 888,
+      true = SEC_C_Q94,
+      false = NA_integer_
+    )
+  ) |>
+  dplyr::select(
+    supervisor, interview__id, interview__key, source,
+    n_obs, dplyr::matches("^(top|bottom)"),
+    val_day, val_night
+  )
+
+battery_coding <-  supervisor_interviewer_interview |>
+  dplyr::left_join(
+    y = dfs_filtered$hholds,
+    by = c("interview__id", "interview__key")
+  ) |>
+  dplyr::left_join(
+    y = main_battery,
+    by = c("interview__id", "interview__key")
+  )	 |>
+  dplyr::mutate(
+    source = "battery",
+    n_obs = (SEC_C_Q100 == 1),
+    bottom_day = SEC_C_Q111 == 0,
+    top_day = SEC_C_Q111 == 24,
+    bottom_night = SEC_C_Q112 == 0,
+    top_night = SEC_C_Q112 == 4,
+    val_day = dplyr::if_else(
+      condition = SEC_C_Q111 != 888,
+      true = SEC_C_Q111,
+      false = NA_integer_
+    ),
+    val_night = dplyr::if_else(
+      condition = SEC_C_Q112 != 888,
+      true = SEC_C_Q112,
+      false = NA_integer_
+    )
+  ) |>
+  dplyr::select(
+    supervisor, interview__id, interview__key, source,
+    n_obs, dplyr::matches("^(top|bottom)"),
+    val_day, val_night
+  )
+
+solar_coding <- supervisor_interviewer_interview |>
+  dplyr::left_join(
+    y = dfs_filtered$hholds,
+    by = c("interview__id", "interview__key")
+  ) |>
+  dplyr::left_join(
+    y = main_solar_system,
+    by = c("interview__id", "interview__key")
+  )	 |>
+  dplyr::mutate(
+    source = "solar",
+    n_obs = (SEC_C_Q117 == 1),
+    bottom_day = SEC_C_Q138 == 0,
+    top_day = SEC_C_Q138 == 24,
+    bottom_night = NA,
+    top_night = NA,
+    val_day = dplyr::if_else(
+      condition = SEC_C_Q138 != 888,
+      true = SEC_C_Q138,
+      false = NA_integer_
+    ),
+    val_night = NA_integer_
+  ) |>
+  dplyr::select(
+    supervisor, interview__id, interview__key, source,
+    n_obs, dplyr::matches("^(top|bottom)"),
+    val_day, val_night
+  )
+
+coding_dfs <- dplyr::bind_rows(
+  grid_coding, mini_grid_coding, generator_coding, solar_coding
+)
+
+coding_by_source <- coding_dfs |>
+  dplyr::group_by(source) |>
+	dplyr::summarise(
+    dplyr::across(
+      .cols = c(n_obs, bottom_day, top_day, bottom_night, top_night),
+      .fns = ~ sum(.x, na.rm = TRUE)
+    ),
+    dplyr::across(
+      .cols = c(val_day, val_night),
+      .fns = ~ list(.x)
+    )
+  ) |>
+	dplyr::ungroup()
+
+coding_overall <- coding_dfs |>
+	dplyr::summarise(
+    dplyr::across(
+      .cols = c(n_obs, bottom_day, top_day, bottom_night, top_night),
+      .fns = ~ sum(.x, na.rm = TRUE)
+    ),
+    dplyr::across(
+      .cols = c(val_day, val_night),
+      .fns = ~ list(.x)
+    )
+  ) |>
+	dplyr::ungroup() |>
+	dplyr::mutate(source = "Overall")
+
+coding_stats <- coding_overall |>
+	dplyr::bind_rows(coding_by_source ) |>
+  dplyr::mutate(
+    dplyr::across(
+      .cols = c(bottom_day, top_day, bottom_night, top_night),
+      .fns = ~ dplyr::case_when(
+          .x > 0 ~ .x / n_obs,
+          .x == 0 ~ NA_real_,
+          is.na(.x) ~ NA_real_
+      ),
+      .names = "pct_{.col}"
+    )
+  ) |>
+	dplyr::select(
+    source,
+    n_obs,
+    # day
+    pct_bottom_day, pct_top_day, val_day,
+    # night
+    pct_bottom_night, pct_top_night, val_night
+  )
+
+reactable::reactable(
+  data = dplyr::select(coding_stats, -val_day, -val_night),
+  columns = list(
+    source = reactable::colDef(name = "Source"),
+    # day
+    pct_bottom_day = reactable::colDef(
+      name = "Bottom<br>(%)",
+      format = reactable::colFormat(percent = TRUE),
+      html = TRUE,
+      na = "-"
+    ),
+    pct_top_day = reactable::colDef(
+      name = "Top<br>(%)",
+      format = reactable::colFormat(percent = TRUE),
+      html = TRUE,
+      na = "-"
+    ),
+    # val_day = reactable::colDef(
+    #   name = "Distribution",
+    #   width = 400,
+    #   cell = function(value, index) {
+    #     dataui::dui_histogram(
+    #       rawData = value,
+    #       components = list(
+    #         dataui::dui_densityseries(
+    #           data = value,
+    #           binType = "density",
+    #           fill = "#69b3a2"
+    #         )
+    #       )
+    #     )
+    #   }
+    # ),
+    # night
+    pct_bottom_night = reactable::colDef(
+      name = "Bottom<br>(%)",
+      format = reactable::colFormat(percent = TRUE),
+      html = TRUE,
+      na = "-"
+    ),
+    pct_top_night = reactable::colDef(
+      name = "Top<br>(%)",
+      format = reactable::colFormat(percent = TRUE),
+      html = TRUE,
+      na = "-"
+    )
+    #endregion ,
+    # val_night = reactable::colDef(
+    #   name = "Distribution",
+    #   width = 400,
+    #   cell = function(value, index) {
+    #     dataui::dui_histogram(
+    #       rawData = value,
+    #       components = list(
+    #         dataui::dui_densityseries(
+    #           data = value,
+    #           binType = "density",
+    #           fill = "#69b3a2"
+    #         )
+    #       )
+    #     )
+    #   }
+    # )
+  ),
+  theme = reactable_style
+)
+	
+```
+
+#### Don't know
+
+```{r}
+#| label: dk hours of availability
+
+dk_availability_grid <- supervisor_interviewer_interview |>
+	dplyr::left_join(dfs_filtered$hholds, by = c("interview__id", "interview__key")) |>
+  dplyr::mutate(
+    n_obs = (SEC_C_Q02 == 1),
+    dk_day = SEC_C_Q27 == 888,
+    dk_night = SEC_C_Q28 == 888,
+    dk_any = (dk_day == 1 | dk_night == 1),
+    dk_both = (dk_day == 1 & dk_night == 1)
+  ) |>
+	dplyr::select(
+    supervisor, interview__id, interview__key,
+    n_obs, dk_any, dk_both, dk_day, dk_night
+  )
+
+dk_availability_mini_grid <- supervisor_interviewer_interview |>
+	dplyr::left_join(dfs_filtered$hholds, by = c("interview__id", "interview__key")) |>
+  dplyr::mutate(
+    n_obs = (SEC_C_Q40 == 1),
+    dk_day = SEC_C_Q65 == 888,
+    dk_night = SEC_C_Q66 == 888,
+    dk_any = (dk_day == 1 | dk_night == 1),
+    dk_both = (dk_day == 1 & dk_night == 1)
+  ) |>
+	dplyr::select(
+    supervisor, interview__id, interview__key,
+    n_obs, dk_any, dk_both, dk_day, dk_night
+  )
+
+dk_availability_generator <- supervisor_interviewer_interview |>
+  dplyr::left_join(
+    y = dfs_filtered$hholds,
+    by = c("interview__id", "interview__key")
+  ) |>
+	dplyr::left_join(main_generator, by = c("interview__id", "interview__key")) |>
+  dplyr::mutate(
+    n_obs = (SEC_C_Q78 == 1),
+    dk_day = SEC_C_Q93 == 888,
+    dk_night = SEC_C_Q94 == 888,
+    dk_any = (dk_day == 1 | dk_night == 1),
+    dk_both = (dk_day == 1 & dk_night == 1)
+  ) |>
+	dplyr::select(
+    supervisor, interview__id, interview__key,
+    n_obs, dk_any, dk_both, dk_day, dk_night
+  )
+
+dk_availability_battery <-  supervisor_interviewer_interview |>
+  dplyr::left_join(
+    y = dfs_filtered$hholds,
+    by = c("interview__id", "interview__key")
+  ) |>
+	dplyr::left_join(main_battery, by = c("interview__id", "interview__key")) |>
+  dplyr::mutate(
+    n_obs = (SEC_C_Q100 == 1),
+    dk_day = SEC_C_Q111 == 888,
+    dk_night = SEC_C_Q112 == 888,
+    dk_any = (dk_day == 1 | dk_night == 1),
+    dk_both = (dk_day == 1 & dk_night == 1)
+  ) |>
+	dplyr::select(
+    supervisor, interview__id, interview__key,
+    n_obs, dk_any, dk_both, dk_day, dk_night
+  )
+
+dk_availability_solar <-   supervisor_interviewer_interview |>
+  dplyr::left_join(
+    y = dfs_filtered$hholds,
+    by = c("interview__id", "interview__key")
+  ) |>
+	dplyr::left_join(main_solar_system, by = c("interview__id", "interview__key")) |>
+  dplyr::mutate(
+    n_obs = (SEC_C_Q117 == 1),
+    dk_day = SEC_C_Q138 == 888,
+    dk_night = NA,
+    dk_any = (dk_day == 1 | dk_night == 1),
+    dk_both = (dk_day == 1 & dk_night == 1)
+  ) |>
+	dplyr::select(
+    supervisor, interview__id, interview__key,
+    n_obs, dk_any, dk_both, dk_day, dk_night
+  )
+
+dk_availability_df <- dplyr::bind_rows(
+  dk_availability_grid, dk_availability_mini_grid,
+  dk_availability_generator, dk_availability_battery, dk_availability_solar
+)
+
+dk_availability_by_team <- dk_availability_df |>
+  dplyr::group_by(supervisor) |>
+	dplyr::summarise(
+    dplyr::across(
+      .cols = c(n_obs, dplyr::starts_with("dk_")),
+      .fns = ~ sum(.x, na.rm = TRUE)
+    )
+  ) |>
+	dplyr::ungroup()
+	
+dk_availability_overall <- dk_availability_df |>
+	dplyr::summarise(
+    dplyr::across(
+      .cols = c(n_obs, dplyr::starts_with("dk_")),
+      .fns = ~ sum(.x, na.rm = TRUE)
+    )
+  ) |>
+	dplyr::ungroup() |>
+	dplyr::mutate(supervisor = "Overall")
+
+dk_availability_stats <- dk_availability_overall |>
+	dplyr::bind_rows(dk_availability_by_team) |>
+	dplyr::mutate(
+    dplyr::across(
+      .cols = dplyr::starts_with("dk_"),
+      .fns = ~ dplyr::case_when(
+          .x > 0 ~ .x / n_obs,
+          .x == 0 ~ NA_real_,
+          is.na(.x) ~ NA_real_
+      ),
+      .names = "pct_{.col}"
+    )
+  ) |>
+  dplyr::select(
+    supervisor, n_obs,
+    dplyr::starts_with("pct_dk_")
+  )
+
+dk_availability_table <- dk_availability_stats |>
+	gt::gt(rowname_col = "supervisor") |>
+  gt::tab_header(title = "Prevalance of 'do not know' (DK)") |>
+	gt::cols_label(
+    n_obs = gt::html("Obs.<br>(N)"),
+    pct_dk_any = gt::html("Any DK<br>(%)"),
+    pct_dk_both = gt::html("Both DK<br>(%)"),
+    pct_dk_day = gt::html("Day DK<br>(%)"),
+    pct_dk_night = gt::html("Night DK<br>(%)")
+  ) |>
+	gt::fmt_integer(columns = c(n_obs)) |>
+	gt::fmt_percent(
+    columns = dplyr::starts_with("pct_dk"),
+    decimals = 1
+  ) |>
+	gt::sub_missing() |>
+	gt::tab_options(heading.background.color = "#6f3996")
+
+dk_availability_table
+```
+
 ### Reliability
+
+```{r}
+#| label: prepare reliability data
+
+dk_blackout_grid <- supervisor_interviewer_interview |>
+  dplyr::left_join(
+    y = dfs_filtered$hholds,
+    by = c("interview__id", "interview__key")
+  ) |>
+  dplyr::mutate(
+    source = "grid",
+    n_obs = (SEC_C_Q02 == 1),
+    dk_num_outages = (SEC_C_Q29 == 888),
+    dk_hrs_outages = (SEC_C_Q30a == 888),
+    dk_min_outages = (SEC_C_Q30b == 888)
+  )
+
+dk_blackout_mini_grid <- supervisor_interviewer_interview |>
+  dplyr::left_join(
+    y = dfs_filtered$hholds,
+    by = c("interview__id", "interview__key")
+  ) |>
+  dplyr::mutate(
+    source = "mini_grid",
+    n_obs = (SEC_C_Q40 == 1),
+    dk_num_outages = (SEC_C_Q67 == 888),
+    dk_hrs_outages = (SEC_C_Q68a == 888),
+    dk_min_outages = (SEC_C_Q68b == 888)
+  )
+
+dk_blackout <- dk_blackout_grid |>
+	dplyr::bind_rows(dk_blackout_mini_grid) |>
+	tidyr::pivot_wider(
+    id_cols = c(supervisor, interview__id, interview__key),
+    names_from = source,
+    values_from = c(n_obs, dplyr::starts_with("dk_"))
+  )
+
+```
+
+#### Don't know frequency
+
+```{r}
+#| label: dk frequency of outages
+
+dk_blackout_freq_counts <- dk_blackout |>
+	dplyr::select(
+    supervisor,
+    n_obs_grid, dk_num_outages_grid,
+    n_obs_mini_grid, dk_num_outages_mini_grid
+  )
+
+dk_blackout_freq_by_team <- dk_blackout_freq_counts |>
+  dplyr::group_by(supervisor) |>
+	dplyr::summarise(
+    dplyr::across(
+      .cols = c(
+        n_obs_grid, dk_num_outages_grid,
+        n_obs_mini_grid, dk_num_outages_mini_grid
+      ),
+      .fns = ~ sum(.x, na.rm = TRUE)
+    )
+  ) |>
+	dplyr::ungroup()
+
+dk_blackout_freq_overall <- dk_blackout_freq_counts |>
+	dplyr::summarise(
+    dplyr::across(
+      .cols = c(
+        n_obs_grid, dk_num_outages_grid,
+        n_obs_mini_grid, dk_num_outages_mini_grid
+      ),
+      .fns = ~ sum(.x, na.rm = TRUE)
+    )
+  ) |>
+	dplyr::mutate(supervisor = "Overall")
+
+dk_blackout_freq_stats <- dk_blackout_freq_overall |>
+	dplyr::bind_rows(dk_blackout_freq_by_team) |>
+	dplyr::mutate(
+    pct_dk_num_outages_grid = dplyr::case_when(
+      dk_num_outages_grid > 0 ~ dk_num_outages_grid / n_obs_grid,
+      dk_num_outages_grid == 0 ~ NA_real_,
+      is.na(dk_num_outages_grid) ~ NA_real_
+    ),
+    pct_dk_num_outages_mini_grid = dplyr::case_when(
+      dk_num_outages_mini_grid > 0 ~ dk_num_outages_mini_grid / n_obs_mini_grid,
+      dk_num_outages_mini_grid == 0 ~ NA_real_,
+      is.na(dk_num_outages_mini_grid) ~ NA_real_
+    )
+  ) |>
+	dplyr::select(
+    supervisor,
+    n_obs_grid, pct_dk_num_outages_grid,
+    n_obs_mini_grid, pct_dk_num_outages_mini_grid
+  )
+
+dk_blackout_freq_table <- dk_blackout_freq_stats |>
+	gt::gt(rowname_col = "supervisor") |>
+  gt::tab_header(title = "Prevalence of 'do not know' (DK)") |>
+	gt::cols_label(
+    n_obs_grid = gt::html("Obs<br>(N)"),
+    pct_dk_num_outages_grid = gt::html("DK<br>(%)"),
+    n_obs_mini_grid = gt::html("Obs<br>(N)"),
+    pct_dk_num_outages_mini_grid = gt::html("DK<br>(%)")
+  ) |>
+  gt::tab_spanner(
+    columns = dplyr::matches("(?<!mini)_grid", perl = TRUE),
+    label = "Grid"
+  ) |>
+  gt::tab_spanner(
+    columns = dplyr::matches("mini_grid"),
+    label = "Mini-grid"
+  ) |>
+	gt::fmt_integer(columns = dplyr::starts_with("n_obs")) |>
+	gt::fmt_percent(
+    columns = dplyr::starts_with("pct_dk"),
+    decimals = 1
+  ) |>
+	gt::sub_missing() |>
+	gt::tab_options(heading.background.color = "#6f3996")
+	
+dk_blackout_freq_table
+```
+
+#### Don't know duration
+
+```{r}
+#| label: dk duration of outages
+
+dk_blackout_dur_counts <- dk_blackout |>
+	dplyr::select(
+    supervisor,
+    n_obs_grid, dk_hrs_outages_grid, dk_min_outages_grid,
+    n_obs_mini_grid, dk_hrs_outages_mini_grid, dk_min_outages_mini_grid
+  )
+
+dk_blackout_dur_by_team <- dk_blackout_dur_counts |>
+  dplyr::group_by(supervisor) |>
+	dplyr::summarise(
+    dplyr::across(
+      .cols = c(
+        n_obs_grid, dk_hrs_outages_grid, dk_min_outages_grid,
+        n_obs_mini_grid, dk_hrs_outages_mini_grid, dk_min_outages_mini_grid
+      ),
+      .fns = ~ sum(.x, na.rm = TRUE)
+    )
+  ) |>
+	dplyr::ungroup()
+
+dk_blackout_dur_overall <- dk_blackout_dur_counts |>
+	dplyr::summarise(
+    dplyr::across(
+      .cols = c(
+        n_obs_grid, dk_hrs_outages_grid, dk_min_outages_grid,
+        n_obs_mini_grid, dk_hrs_outages_mini_grid, dk_min_outages_mini_grid
+      ),
+      .fns = ~ sum(.x, na.rm = TRUE)
+    )
+  ) |>
+	dplyr::mutate(supervisor = "Overall")
+
+dk_blackout_dur_stats <- dk_blackout_dur_overall |>
+	dplyr::bind_rows(dk_blackout_dur_by_team) |>
+	dplyr::mutate(
+    dplyr::across(
+      .cols = c(dk_hrs_outages_grid, dk_min_outages_grid),
+      .fns = ~ dplyr::case_when(
+        .x > 0 ~ .x / n_obs_grid,
+        .x == 0 ~ NA_real_,
+        is.na(.x) ~ NA_real_
+      ),
+      .names = "pct_{.col}"
+    ),
+    dplyr::across(
+      .cols = c(dk_hrs_outages_mini_grid, dk_min_outages_mini_grid),
+      .fns = ~ dplyr::case_when(
+        .x > 0 ~ .x / n_obs_mini_grid,
+        .x == 0 ~ NA_real_,
+        is.na(.x) ~ NA_real_
+      ),
+      .names = "pct_{.col}"
+    )
+  ) |>
+	dplyr::select(
+    supervisor,
+    n_obs_grid, pct_dk_hrs_outages_grid, pct_dk_min_outages_grid,
+    n_obs_mini_grid, pct_dk_hrs_outages_mini_grid, pct_dk_min_outages_mini_grid
+  )
+
+dk_blackout_dur_table <- dk_blackout_dur_stats |>
+	gt::gt(rowname_col = "supervisor") |>
+  gt::tab_header(title = "Prevalence of 'do not know' (DK)") |>
+	gt::cols_label(
+    # grid
+    n_obs_grid = gt::html("Obs<br>(N)"),
+    pct_dk_hrs_outages_grid = gt::html("Hours DK<br>(%)"),
+    pct_dk_min_outages_grid = gt::html("Minutes DK<br>(%)"),
+    # mini-grid
+    n_obs_mini_grid = gt::html("Obs<br>(N)"),
+    pct_dk_hrs_outages_mini_grid = gt::html("Hours DK<br>(%)"),
+    pct_dk_min_outages_mini_grid = gt::html("Minutes DK<br>(%)")
+  ) |>
+  gt::tab_spanner(
+    columns = dplyr::matches("(?<!mini)_grid", perl = TRUE),
+    label = "Grid"
+  ) |>
+  gt::tab_spanner(
+    columns = dplyr::matches("mini_grid"),
+    label = "Mini-grid"
+  ) |>
+	gt::fmt_integer(columns = dplyr::starts_with("n_obs")) |>
+	gt::fmt_percent(
+    columns = dplyr::starts_with("pct_dk"),
+    decimals = 1
+  ) |>
+	gt::sub_missing() |>
+	gt::tab_options(heading.background.color = "#6f3996")
+	
+dk_blackout_dur_table
+```
+
 ### Affordability
+
+```{r}
+#| label: reporting on number of expenditure items
+
+expenditure_items_counts <- supervisor_interviewer_interview |>
+  dplyr::left_join(
+    y = dfs_filtered$hholds,
+    by = c("interview__id", "interview__key")
+  ) |>
+  dplyr::mutate(
+    n_obs = !is.na(interview__id),
+    # count "yes" values
+    # first, converting columns to Boolean
+    # then, summing the values, where `TRUE` = 1
+    dplyr::across(
+      .cols = dplyr::starts_with("SEC_O_Q01__"),
+      .fns = ~ .x == 1
+    ),
+    n_food_items = rowSums(
+      dplyr::pick(dplyr::starts_with("SEC_O_Q01__")),
+      na.rm = TRUE
+    ),
+    dplyr::across(
+      .cols = dplyr::starts_with("SEC_O_(One|Q12)_Month"),
+      .fns = ~ .x == 1
+    ),
+    n_non_food_items = rowSums(
+      dplyr::pick(dplyr::starts_with("SEC_O_(One|Q12)_Month")),
+      na.rm = TRUE
+    ),
+    n_items = rowSums(dplyr::pick(n_food_items, n_non_food_items)),
+    n_items_series = n_items,
+    no_food_items = (n_food_items == 0),
+    no_non_food_items = (n_non_food_items == 0),
+    no_items = (n_items == 0)
+  ) |>
+	dplyr::select(
+    supervisor, interview__id, interview__key,
+    n_obs,
+    n_food_items, n_non_food_items,
+    n_items,
+    no_items, no_food_items, no_non_food_items
+  )
+
+expenditure_items_by_team <- expenditure_items_counts |>
+	dplyr::group_by(supervisor) |>
+	dplyr::summarise(
+    dplyr::across(
+      .cols = c(n_obs, no_items, no_food_items, no_non_food_items),
+      .fns = ~ sum(.x, na.rm = TRUE)
+    ),
+    dplyr::across(
+      .cols = c(n_items, n_food_items, n_non_food_items),
+      .fns = ~ median(.x, na.rm = TRUE)
+    )
+  ) |>
+	dplyr::ungroup()
+
+expenditure_items_overall <- expenditure_items_counts |>
+	dplyr::summarise(
+    dplyr::across(
+      .cols = c(n_obs, no_items, no_food_items, no_non_food_items),
+      .fns = ~ sum(.x, na.rm = TRUE)
+    ),
+    dplyr::across(
+      .cols = c(n_items, n_food_items, n_non_food_items),
+      .fns = ~ median(.x, na.rm = TRUE)
+    )
+  ) |>
+	dplyr::mutate(supervisor = "Overall")
+
+expenditure_item_stats <- expenditure_items_by_team |>
+	dplyr::bind_rows(expenditure_items_overall) |>
+	dplyr::mutate(
+    dplyr::across(
+      .cols = dplyr::starts_with("no_"),
+      .fns = ~ dplyr::case_when(
+          .x > 0 ~ .x / n_obs,
+          .x == 0 ~ NA_real_,
+          is.na(.x) ~ NA_real_
+      ),
+      .names = "pct_{.col}"
+    )
+  ) |>
+	dplyr::select(
+    supervisor, n_obs,
+    # overall
+    pct_no_items, n_items,
+    # food
+    pct_no_food_items, n_food_items,
+    # non-food
+    pct_no_non_food_items, n_non_food_items
+  )
+
+expenditure_item_table <- expenditure_item_stats |>
+	gt::gt(rowname_col = "supervisor") |>
+	gt::tab_header(title = "Number of expenditure items reported, overall and by category") |>
+	gt::cols_label(
+    n_obs = gt::html("Obs.<br>(N)"),
+    # overall
+    pct_no_items = gt::html("None<br>(%)"),
+    n_items = gt::html("Median"),
+    # food
+    pct_no_food_items = gt::html("None<br>(%)"),
+    n_food_items = gt::html("Median"),
+    # non-food
+    pct_no_non_food_items = gt::html("None<br>(%)"),
+    n_non_food_items = gt::html("Median")
+  ) |>
+  gt::tab_spanner(
+    columns = c(pct_no_items, n_items),
+    label = "All"
+  ) |>
+  gt::tab_spanner(
+    columns = c(pct_no_food_items, n_food_items),
+    label = "Food"
+  ) |>
+  gt::tab_spanner(
+    columns = c(pct_no_non_food_items, n_non_food_items),
+    label = "Non-food"
+  ) |>
+	gt::fmt_integer(columns = dplyr::starts_with("n_")) |>
+	gt::fmt_percent(
+    columns = dplyr::starts_with("pct_dk"),
+    decimals = 1
+  ) |>
+	gt::sub_missing() |>
+	gt::tab_options(heading.background.color = "#6f3996")
+
+expenditure_item_table
+```
+
 ### Formality
+
+```{r}
+#| label: other payee data prep
+
+other_payee <- supervisor_interviewer_interview |>
+  dplyr::left_join(
+    y = dfs_filtered$hholds,
+    by = c("interview__id", "interview__key")
+  ) |>
+  dplyr::mutate(
+    n_grid = (SEC_C_Q02 == 1),
+    oth_payee_grid = SEC_C_Q12_oth,
+    has_oth_payee_grid = !oth_payee_grid %in% c(NA_character_, ""),
+    n_mini_grid = (SEC_C_Q40 == 1),
+    oth_payee_mini_grid = SEC_C_Q48_oth,
+    has_oth_payee_mini_grid = !oth_payee_mini_grid %in% c(NA_character_, ""),
+  ) |>
+	dplyr::select(
+    supervisor, interviewer, interview__id, interview__key,
+    n_grid, has_oth_payee_grid, oth_payee_grid,
+    n_mini_grid, has_oth_payee_mini_grid, oth_payee_mini_grid
+  )
+	
+```
+
+```{r}
+#| label: prevalence of other payee
+
+oth_payee_nums <- other_payee |>
+  # renaming to shorten percentage var names
+  # dropping `oth_` variables to avoid name collision
+  dplyr::select(-dplyr::starts_with("oth_")) |>
+	dplyr::rename_with(
+    .cols = dplyr::matches("has_"),
+    .fn = ~ gsub(x = .x, pattern = "has_", replacement = "")
+  )
+
+other_payee_by_team <- oth_payee_nums |>
+	dplyr::group_by(supervisor) |>
+  dplyr::summarise(
+    dplyr::across(
+      .cols = dplyr::matches("(n_|oth_)"),
+      .fns = ~ sum(.x, na.rm = TRUE)
+    )
+  ) |>
+	dplyr::ungroup()
+
+other_payee_overall <- oth_payee_nums |>
+  dplyr::summarise(
+    dplyr::across(
+      .cols = dplyr::matches("(n_|oth_)"),
+      .fns = ~ sum(.x, na.rm = TRUE)
+    )
+  ) |>
+	dplyr::mutate(supervisor = "Overall")
+
+other_payee_stats <- other_payee_overall |>
+	dplyr::bind_rows(other_payee_by_team) |>
+  dplyr::mutate(
+    pct_oth_payee_grid = dplyr::case_when(
+      oth_payee_grid > 0 ~ oth_payee_grid / n_grid,
+      oth_payee_grid == 0 ~ NA_real_,
+      is.na(oth_payee_grid) ~ NA_real_
+    ),
+    pct_oth_payee_mini_grid = dplyr::case_when(
+      oth_payee_mini_grid > 0 ~ oth_payee_mini_grid / n_mini_grid,
+      oth_payee_mini_grid == 0 ~ NA_real_,
+      is.na(oth_payee_mini_grid) ~ NA_real_ 
+    )
+  ) |>
+	dplyr::select(
+    supervisor,
+    n_grid, pct_oth_payee_grid,
+    n_mini_grid, pct_oth_payee_mini_grid
+  )
+
+other_payee_table <- other_payee_stats |>
+  gt::gt(rowname_col = "supervisor") |>
+  gt::tab_header(title = "Prevalence of other payees, by source") |>
+	gt::cols_label(
+    # grid
+    n_grid = gt::html("Obs<br>(N)"),
+    pct_oth_payee_grid = gt::html("Other<br>(%)"),
+    # mini-grid
+    n_mini_grid = gt::html("Obs<br>(N)"),
+    pct_oth_payee_mini_grid = gt::html("Other<br>(%)")
+  ) |>
+  gt::tab_spanner(
+    columns = dplyr::matches("(?<!mini)_grid", perl = TRUE),
+    label = "Grid"
+  ) |>
+  gt::tab_spanner(
+    columns = dplyr::matches("mini_grid", perl = TRUE),
+    label = "Mini-grid"
+  ) |>
+	gt::fmt_integer(columns = dplyr::starts_with("n_")) |>
+	gt::fmt_percent(
+    columns = dplyr::starts_with("pct_"),
+    decimals = 1
+  ) |>
+	gt::sub_missing() |>
+	gt::tab_options(heading.background.color = "#6f3996")
+	
+other_payee_table
+```
+
+```{r}
+#| label: text of other payee
+
+oth_payee_txt <- other_payee |>
+	dplyr::select(
+    supervisor, interviewer, interview__key,
+    oth_payee_grid,
+    oth_payee_mini_grid
+  ) |>
+	tidyr::pivot_longer(
+    cols = dplyr::starts_with("oth_payee"),
+    names_prefix = "oth_payee",
+    names_to = "source",
+    values_to = "oth_payee",
+    values_drop_na = TRUE
+  ) |>
+	dplyr::mutate(
+    source = dplyr::case_when(
+      source == "_grid" ~ "Grid",
+      source == "_mini_grid" ~ "Mini-grid",
+      TRUE ~ NA_character_
+    )
+  ) |>
+  dplyr::filter(oth_payee != "") |>
+	dplyr::select(
+    oth_payee, source,
+    supervisor, interviewer, interview__key
+  )
+
+if (nrow(oth_payee_txt) > 0) {
+
+  reactable::reactable(
+    data = oth_payee_txt,
+    columns = list(
+      oth_payee = reactable::colDef(name = "'Other' text"),
+      source = reactable::colDef(name = "Electricity source"),
+      supervisor = reactable::colDef(name = "Team"),
+      interviewer = reactable::colDef(name = "Interviewer"),
+      interview__key = reactable::colDef(name = "Interview")
+    ),
+    striped = TRUE,
+    searchable = TRUE,
+    theme = reactable_style
+  )	
+
+}
+
+```
 
 # Access to modern cooking solutions
 
 ### Exposure
+
+#### Stove design
+
+```{r}
+#| label: other stove data prep
+
+other_main_stove <- supervisor_interviewer_interview |>
+  dplyr::left_join(
+    y = main_stove,
+    by = c("interview__id", "interview__key")
+  ) |>
+	dplyr::mutate(
+    n_obs = !is.na(SEC_G_Q04),
+    oth_stove = (SEC_G_Q05 == 555)
+  ) |>
+	dplyr::select(
+    supervisor, interviewer, interview__id, interview__key,
+    n_obs, oth_stove,
+    SEC_G_Q05_oth
+  )
+```
+
+##### Prevalence of other stove
+
+```{r}
+#| label: prevalence of other stoves
+
+other_main_stove_by_team  <- other_main_stove |>
+	dplyr::group_by(supervisor) |>
+  dplyr::summarize(
+    dplyr::across(
+      .cols = c(n_obs, oth_stove),
+      .fns = ~ sum(.x, na.rm = TRUE)
+    )
+  ) |>
+	dplyr::ungroup()
+
+other_main_stove_overall <- other_main_stove |>
+  dplyr::summarize(
+    dplyr::across(
+      .cols = c(n_obs, oth_stove),
+      .fns = ~ sum(.x, na.rm = TRUE)
+    )
+  ) |>
+	dplyr::mutate(supervisor = "Overall")
+
+other_main_stove_stats <- other_main_stove_overall |>
+	dplyr::bind_rows(other_main_stove_by_team) |>
+	dplyr::mutate(
+    pct_oth_stove = dplyr::case_when(
+      oth_stove > 0 ~ oth_stove / n_obs,
+      oth_stove == 0 ~ NA_real_,
+      is.na(oth_stove) ~ NA_real_
+    )
+  ) |>
+	dplyr::select(
+    supervisor,
+    n_obs, pct_oth_stove
+  )
+
+other_main_stove_table <- other_main_stove_stats |>
+	gt::gt(rowname_col = "supervisor") |>
+  gt::tab_header(title = "Prevalence of other stove type, by team") |>
+  gt::cols_label(
+    n_obs = gt::html("Obs<br>(N)"),
+    pct_oth_stove = gt::html("Other<br>(%)")
+  ) |>
+	gt::fmt_integer(columns = dplyr::starts_with("n_")) |>
+	gt::fmt_percent(
+    columns = dplyr::starts_with("pct_"),
+    decimals = 1
+  ) |>
+	gt::sub_missing() |>
+	gt::tab_options(heading.background.color = "#6f3996")
+	
+other_main_stove_table
+```
+
+##### Details of other stove
+
+```{r}
+#| label: details of other (main) stoves
+oth_stove_txt <- other_main_stove |>
+	dplyr::select(
+    supervisor, interviewer, interview__key,
+    oth_stove = SEC_G_Q05_oth 
+  ) |>
+  dplyr::filter(! oth_stove %in% c(NA_character_, "")) |>
+  dplyr::select(
+    oth_stove,
+    supervisor, interviewer, interview__key
+  )
+
+if (nrow(oth_stove_txt) > 0) {
+
+  reactable::reactable(
+    data = oth_stove_txt,
+    columns = list(
+      oth_stove = reactable::colDef(name = "'Other' text"),
+      supervisor = reactable::colDef(name = "Team"),
+      interviewer = reactable::colDef(name = "Interviewer"),
+      interview__key = reactable::colDef(name = "Interview")
+    ),
+    striped = TRUE,
+    searchable = TRUE,
+    theme = reactable_style
+  )
+
+}
+
+```
+
+#### Fuel
+
+```{r}
+#| label: prepare main stove's fuel data for tables
+
+other_stove_fuel <- supervisor_interviewer_interview |>
+  dplyr::left_join(
+    y = main_stove,
+    by = c("interview__id", "interview__key")
+  ) |>
+	dplyr::mutate(
+    n_obs = !is.na(SEC_G_Q04),
+    oth_fuel = (SEC_G_Q16__555 == 1),
+    # TODO: write so that all are NA
+    na_fuel = dplyr::if_all(
+      .cols = dplyr::starts_with("SEC_G_Q16__"),
+      .fns = ~ haven::is_tagged_na(.x, tag = "a")
+    )
+  ) |>
+	dplyr::select(
+    supervisor, interviewer, interview__id, interview__key,
+    n_obs, oth_fuel, na_fuel,
+    oth_stove_fuel_text = SEC_G_Q16_oth
+  )
+
+```
+
+##### Prevalence of other or missing fuel
+
+```{r}
+#| label: main stove's fuel is other or NA
+
+oth_stove_fuel_by_team <- other_stove_fuel |>
+	dplyr::group_by(supervisor) |>
+	dplyr::summarise(
+    dplyr::across(
+      .cols = c(n_obs, oth_fuel, na_fuel),
+      .fns = ~ sum(.x, na.rm = TRUE)
+    )
+  ) |>
+	dplyr::ungroup()
+
+oth_stove_fuel_overall <- other_stove_fuel |>
+	dplyr::summarise(
+    dplyr::across(
+      .cols = c(n_obs, oth_fuel, na_fuel),
+      .fns = ~ sum(.x, na.rm = TRUE)
+    )
+  ) |>
+  dplyr::mutate(supervisor = "Overall")
+
+oth_stove_fuel_stats <- oth_stove_fuel_overall |>
+	dplyr::bind_rows(oth_stove_fuel_by_team) |>
+	dplyr::mutate(
+    dplyr::across(
+      .cols = c(oth_fuel, na_fuel),
+      .fns = ~ dplyr::case_when(
+        .x > 0 ~ .x / n_obs,
+        .x == 0 ~ NA_real_,
+        is.na(.x) ~ NA_real_
+      ),
+      .names = "pct_{.col}"
+    )
+  ) |>
+	dplyr::select(
+    supervisor,
+    n_obs, pct_oth_fuel, pct_na_fuel
+  )
+
+oth_stove_fuel_table <- oth_stove_fuel_stats |>
+	gt::gt(rowname_col = "supervisor") |>
+  gt::tab_header(title = "Prevalence of other stove fuels, by team") |>
+	gt::cols_label(
+    n_obs = gt::html("Obs<br>(N)"),
+    pct_oth_fuel = gt::html("Other<br>(%)"),
+    pct_na_fuel = gt::html("Unanswered<br>(%)")
+  ) |>
+	gt::fmt_integer(columns = dplyr::starts_with("n_")) |>
+	gt::fmt_percent(
+    columns = dplyr::starts_with("pct_"),
+    decimals = 1
+  ) |>
+	gt::sub_missing() |>
+	gt::tab_options(heading.background.color = "#6f3996")
+ 
+oth_stove_fuel_table
+```
+
+##### Details or other fuel
+
+```{r}
+#| label: details of other fuels, if any
+
+oth_stove_fuel_txt <- other_stove_fuel |>
+	dplyr::filter(!oth_stove_fuel_text %in% c(NA_character_, "")) |>
+	dplyr::select(
+    oth_stove_fuel_text,
+    supervisor, interviewer, interview__key
+  )
+
+if (nrow(oth_payee_txt) > 0) {
+
+  reactable::reactable(
+    data = oth_stove_fuel_txt,
+    columns = list(
+      oth_stove_fuel_text = reactable::colDef(name = "'Other' text"),
+      supervisor = reactable::colDef(name = "Team"),
+      interviewer = reactable::colDef(name = "Interviewer"),
+      interview__key = reactable::colDef(name = "Interview")
+    ),
+    striped = TRUE,
+    searchable = TRUE,
+    theme = reactable_style
+  )	
+
+}
+
+```
+
+#### Ventillation
+
+##### Where cook
+
+```{r}
+#| label: prepare cooking location data for tables
+
+oth_cooking_loc <- supervisor_interviewer_interview |>
+  dplyr::left_join(
+    y = main_stove,
+    by = c("interview__id", "interview__key")
+  ) |>
+	dplyr::mutate(
+    n_obs = !is.na(SEC_G_Q04),
+    oth_loc = (SEC_G_Q14 == 555)
+  ) |>
+	dplyr::select(
+    supervisor, interviewer, interview__id, interview__key,
+    n_obs, oth_loc,
+    oth_cooking_loc_text = SEC_G_Q14_oth
+  )
+```
+
+###### Prevalence of other cooking location
+
+```{r}
+#| label: prevalence of other cooking location
+
+oth_cooking_loc_by_team <- oth_cooking_loc |>
+	dplyr::group_by(supervisor) |>
+	dplyr::summarise(
+    dplyr::across(
+      .cols = c(n_obs, oth_loc),
+      .fns = ~ sum(.x, na.rm = TRUE)
+    )
+  ) |>
+	dplyr::ungroup()
+
+oth_cooking_loc_overall <- oth_cooking_loc |>
+	dplyr::summarise(
+    dplyr::across(
+      .cols = c(n_obs, oth_loc),
+      .fns = ~ sum(.x, na.rm = TRUE)
+    )
+  ) |>
+	dplyr::mutate(supervisor = "Overall")
+
+oth_cooking_loc_stats <- oth_cooking_loc_overall |>
+	dplyr::bind_rows(oth_cooking_loc_by_team) |>
+	dplyr::mutate(
+    pct_oth_stove = dplyr::case_when(
+      oth_loc > 0 ~ oth_loc / n_obs,
+      oth_loc == 0 ~ NA_real_,
+      is.na(oth_loc) ~ NA_real_
+    )
+  ) |>
+	dplyr::select(
+    supervisor,
+    n_obs, pct_oth_stove
+  )
+
+oth_cooking_loc_table <- oth_cooking_loc_stats |>
+	gt::gt(rowname_col = "supervisor") |>
+  gt::tab_header(title = "Prevalence of other cooking location, by team") |>
+  gt::cols_label(
+    n_obs = gt::html("Obs<br>(N)"),
+    pct_oth_stove = gt::html("Other<br>(%)")
+  ) |>
+	gt::fmt_integer(columns = dplyr::starts_with("n_")) |>
+	gt::fmt_percent(
+    columns = dplyr::starts_with("pct_"),
+    decimals = 1
+  ) |>
+	gt::sub_missing() |>
+	gt::tab_options(heading.background.color = "#6f3996")
+
+oth_cooking_loc_table
+```
+
+###### Details of other cooking location
+
+```{r}
+#| label: Details of other cooking location
+
+oth_cooking_txt <- oth_cooking_loc |>
+	dplyr::filter(!oth_cooking_loc_text %in% c(NA_character_, "")) |>
+  dplyr::select(
+    oth_cooking_loc_text,
+    supervisor, interviewer, interview__key
+  )
+	
+if (nrow(oth_cooking_txt) > 0) {
+
+  reactable::reactable(
+    data = oth_cooking_txt,
+    columns = list(
+      oth_cooking_loc_text = reactable::colDef(name = "'Other' text"),
+      supervisor = reactable::colDef(name = "Team"),
+      interviewer = reactable::colDef(name = "Interviewer"),
+      interview__key = reactable::colDef(name = "Interview")
+    ),
+    striped = TRUE,
+    searchable = TRUE,
+    theme = reactable_style
+  )
+
+}
+```
+
+##### Exhaust system
+
+```{r}
+#| label: prepare other exhaust system data for tables
+
+oth_exhaust <- supervisor_interviewer_interview |>
+  dplyr::left_join(
+    y = main_stove,
+    by = c("interview__id", "interview__key")
+  ) |>
+	dplyr::mutate(
+    n_obs = !is.na(SEC_G_Q04),
+    oth_exhaust = (SEC_G_Q15__555 == 1)
+  ) |>
+	dplyr::select(
+    supervisor, interviewer, interview__id, interview__key,
+    n_obs, oth_stove,
+    oth_exhaust_text = SEC_G_Q15_oth
+  )
+
+```
+
+###### Prevalence of other exhaust system
+
+```{r}
+#| label: Prevalence of other exhaust system
+
+oth_exhaust_by_team <- oth_exhaust |>
+  dplyr::group_by(supervisor) |>
+	dplyr::summarise(
+    dplyr::across(
+      .cols = c(n_obs, oth_stove),
+      .fns = ~ sum(.x, na.rm = TRUE)
+    )
+  ) |>
+	dplyr::ungroup()
+	
+oth_exhaust_overall <- oth_exhaust |>
+	dplyr::summarise(
+    dplyr::across(
+      .cols = c(n_obs, oth_stove),
+      .fns = ~ sum(.x, na.rm = TRUE)
+    )
+  ) |>
+	dplyr::mutate(supervisor = "Overall")
+
+oth_exhaust_stats <- oth_exhaust_overall |>
+	dplyr::bind_rows(oth_exhaust_by_team) |>
+	dplyr::mutate(
+    pct_oth_exhaust = dplyr::case_when(
+      oth_exhaust > 0 ~ oth_exhaust / n_obs,
+      oth_exhaust == 0 ~ NA_real_,
+      is.na(oth_exhaust) ~ NA_real_
+    )
+  ) |>
+	dplyr::select(
+    supervisor,
+    n_obs, pct_oth_exhaust
+  )
+
+oth_exhaust_table <- oth_exhaust_stats |>
+  gt::gt(rowname_col = "supervisor") |>
+  gt::tab_header(title = "Prevalence of other exhaust system, by team") |>
+  gt::cols_label(
+    n_obs = gt::html("Obs<br>(N)"),
+    pct_oth_exhaust = gt::html("Other<br>(%)")
+  ) |>
+	gt::fmt_integer(columns = dplyr::starts_with("n_")) |>
+	gt::fmt_percent(
+    columns = dplyr::starts_with("pct_"),
+    decimals = 1
+  ) |>
+	gt::sub_missing() |>
+	gt::tab_options(heading.background.color = "#6f3996")
+	
+oth_exhaust_table
+```
+
+##### Details of other exhaust system
+
+```{r}
+#| label: Details of other exhaust system
+
+oth_exhaust_txt <- oth_exhaust |>
+	dplyr::filter(!oth_exhaust_text %in% c(NA_character_, "")) |>
+  dplyr::select(
+    oth_exhaust_text,
+    supervisor, interviewer, interview__key
+  )
+	
+if (nrow(oth_stove_txt) > 0) {
+
+  reactable::reactable(
+    data = oth_exhaust_txt,
+    columns = list(
+      oth_exhaust_text = reactable::colDef(name = "'Other' text"),
+      supervisor = reactable::colDef(name = "Team"),
+      interviewer = reactable::colDef(name = "Interviewer"),
+      interview__key = reactable::colDef(name = "Interview")
+    ),
+    striped = TRUE,
+    searchable = TRUE,
+    theme = reactable_style
+  )
+
+}
+
+```
+
+#### Contact time
+
+##### Total time in kitchen
+
+TODO
+
+##### Times light stove
+
+TODO
+
+##### Time per day boiling water 
+
+TODO
+
+##### Time to cook or reheat meals
+
+TODO: table with distributions of morning, afternoon, and evening
+
 ### Convenience
+
+#### Preparing stove
+
+TODO
+
+#### Gathering fuel
+
+TODO, but need clarification on how to attribute fuel time to a stove
+
 ### Safety
+
+N/A
+
 ### Affordability
+
+TODO: get clarifications on tables to produce
+
 ### Availability
+
+TODO: get clarity on which variable(s), if any, measure availability. If `SEC_G_Q17`, nothing to measure.
