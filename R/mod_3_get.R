@@ -268,7 +268,121 @@ mod_3_get_server <- function(id, info){
         values = "data_panel"
       )
 
+
     })
+  
+  # ============================================================================
+  # react to download buttons
+  # ============================================================================
+
+  output$hhold <- shiny::downloadHandler(
+    filename = "hhold.zip",
+    content = function(file) {
+
+      # zip file path
+      zip_file_path <- fs::path(data_dirs$hhold_c, "hhold.zip")
+
+      # zip data files
+      zip::zip(
+        zipfile = zip_file_path,
+        files = fs::dir_ls(
+          path = data_dirs$hhold_c,
+          type = "file",
+          regexp = "\\.dta"
+        )
+      )
+
+      # serve them up
+      fs::file_copy(
+        path = zip_file_path,
+        new_path = file
+      )
+
+    }
+
+  )
+
+  output$comm <- shiny::downloadHandler(
+    filename = "community.zip",
+    content = function(file) {
+
+      # zip file path
+      zip_file_path <- fs::path(data_dirs$comm_c, "community.zip")
+
+      # prepare zip data file
+      zip::zip(
+        zipfile = zip_file_path,
+        files = fs::dir_ls(
+          path = data_dirs$comm_c,
+          type = "file",
+          regexp = "\\.dta"
+        )
+      )
+
+      # serve it up
+      fs::file_copy(
+        path = zip_file_path,
+        new_path = file
+      )
+
+    }
+
+  )
+
+
+  output$educ <- shiny::downloadHandler(
+    filename = "education.zip",
+    content = function(file) {
+
+      # zip file path
+      zip_file_path <- fs::path(data_dirs$educ_c, "education.zip")
+
+      # prepare zip data file
+      zip::zip(
+        zipfile = zip_file_path,
+        files = fs::dir_ls(
+          path = data_dirs$educ_c,
+          type = "file",
+          regexp = "\\.dta"
+        )
+      )
+
+      # serve them up
+      fs::file_copy(
+        path = zip_file_path,
+        new_path = file
+      )
+
+    }
+
+  )
+
+  output$educ <- shiny::downloadHandler(
+    filename = "health.zip",
+    content = function(file) {
+
+      # zip file path
+      zip_file_path <- fs::path(dirs$health_c, "health.zip")
+
+      # prepare zip data file
+      zip::zip(
+        zipfile = zip_file_path,
+        files = fs::dir_ls(
+          path = dirs$health_c,
+          type = "file",
+          regexp = "\\.dta"
+        )
+      )
+
+      # serve them up
+      fs::file_copy(
+        path = zip_file_path,
+        new_path = file
+      )
+
+    }
+
+  )
 
   })
 }
