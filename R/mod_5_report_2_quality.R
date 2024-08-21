@@ -130,7 +130,12 @@ mod_5_report_2_quality_server <- function(id, parent, info){
     # react to download button
     # ==========================================================================
 
-    # TODO: need download handler function
+    output$download <- shiny::downloadHandler(
+      filename = "report_quality.html",
+      content = function(file) {
+        fs::file_copy(path = report$output_path, new_path = file)
+      }
+    )
 
   })
 }
