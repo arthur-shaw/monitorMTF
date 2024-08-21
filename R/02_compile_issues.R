@@ -631,7 +631,7 @@ create_issues <- function(attributes) {
         "This contradiction needs to be either explained or resolved.",
         "For what the solar system powers, navigate to section C question {..2}",
         "For what the household owns, navigate to section I, question 1.",
-        .sep = " ",
+        .sep = " "
       )
     )
   ) |>
@@ -681,7 +681,7 @@ create_issues <- function(attributes) {
         "For fuels consumed overall, navigate to section I, where question 1",
         "captures the fuels consumed and question 3 identifies the use(s).",
         "for each fuel.",
-        .sep = " ",
+        .sep = " "
       )
     )
   ) |>
@@ -716,7 +716,7 @@ create_issues <- function(attributes) {
         "for each fuel.",
         "For a listing of cookstoves used by the household, navigate to section",
         "G, question 3.",
-        .sep = " ",
+        .sep = " "
       )
     )
   ) |>
@@ -755,7 +755,7 @@ create_issues <- function(attributes) {
         "This contradiction needs to be resolved for explained.",
         "For backup connections, check questions {..3} in section C.",
         "For {..4} as a connection, check {..2}",
-        .sep = " ",
+        .sep = " "
       )
     )
   ) |>
