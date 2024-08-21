@@ -280,16 +280,19 @@ mod_3_get_server <- function(id, info){
     content = function(file) {
 
       # zip file path
-      zip_file_path <- fs::path(data_dirs$hhold_c, "hhold.zip")
+      zip_file_path <- fs::path(info$data_dir_hhold_c, "hhold.zip")
+
+      # files to zip
+      files_to_zip <- fs::dir_ls(
+        path = info$data_dir_hhold_c,
+        type = "file",
+        regexp = "\\.dta"
+      )
 
       # zip data files
-      zip::zip(
+      zip::zipr(
         zipfile = zip_file_path,
-        files = fs::dir_ls(
-          path = data_dirs$hhold_c,
-          type = "file",
-          regexp = "\\.dta"
-        )
+        files = files_to_zip
       )
 
       # serve them up
@@ -307,16 +310,19 @@ mod_3_get_server <- function(id, info){
     content = function(file) {
 
       # zip file path
-      zip_file_path <- fs::path(data_dirs$comm_c, "community.zip")
+      zip_file_path <- fs::path(info$data_dir_comm_c, "community.zip")
+
+      # files to zip
+      files_to_zip <- fs::dir_ls(
+        path = info$data_dir_comm_c,
+        type = "file",
+        regexp = "\\.dta"
+      )
 
       # prepare zip data file
-      zip::zip(
+      zip::zipr(
         zipfile = zip_file_path,
-        files = fs::dir_ls(
-          path = data_dirs$comm_c,
-          type = "file",
-          regexp = "\\.dta"
-        )
+        files = files_to_zip
       )
 
       # serve it up
@@ -335,16 +341,19 @@ mod_3_get_server <- function(id, info){
     content = function(file) {
 
       # zip file path
-      zip_file_path <- fs::path(data_dirs$educ_c, "education.zip")
+      zip_file_path <- fs::path(info$data_dir_educ_c, "education.zip")
+
+      # files to zip
+      files_to_zip <- fs::dir_ls(
+        path = data_dirs$educ_c,
+        type = "file",
+        regexp = "\\.dta"
+      )
 
       # prepare zip data file
-      zip::zip(
+      zip::zipr(
         zipfile = zip_file_path,
-        files = fs::dir_ls(
-          path = data_dirs$educ_c,
-          type = "file",
-          regexp = "\\.dta"
-        )
+        files = files_to_zip
       )
 
       # serve them up
@@ -362,21 +371,40 @@ mod_3_get_server <- function(id, info){
     content = function(file) {
 
       # zip file path
-      zip_file_path <- fs::path(dirs$health_c, "health.zip")
+      zip_file_path <- fs::path(info$data_dir_health_c, "health.zip")
+
+      # files to zip
+      files_to_zip <- fs::dir_ls(
+        path = info$data_dir_health_c,
+        type = "file",
+        regexp = "\\.dta"
+      )
 
       # prepare zip data file
-      zip::zip(
+      zip::zipr(
         zipfile = zip_file_path,
-        files = fs::dir_ls(
-          path = dirs$health_c,
-          type = "file",
-          regexp = "\\.dta"
-        )
+        files = files_to_zip
       )
 
       # serve them up
       fs::file_copy(
         path = zip_file_path,
+        new_path = file
+      )
+
+    }
+
+  )
+
+  output$teams <- shiny::downloadHandler(
+    filename = "hhold.zip",
+    content = function(file) {
+
+      file_path <- fs::path(info$data_dir_teams, "team_composition.dta")
+
+      # serve up single file 
+      fs::file_copy(
+        path = file_path,
         new_path = file
       )
 
