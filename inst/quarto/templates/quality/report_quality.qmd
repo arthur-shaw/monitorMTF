@@ -1717,7 +1717,7 @@ oth_exhaust <- supervisor_interviewer_interview |>
   ) |>
 	dplyr::select(
     supervisor, interviewer, interview__id, interview__key,
-    n_obs, oth_stove,
+    n_obs, oth_exhaust,
     oth_exhaust_text = SEC_G_Q15_oth
   )
 
@@ -1732,7 +1732,7 @@ oth_exhaust_by_team <- oth_exhaust |>
   dplyr::group_by(supervisor) |>
 	dplyr::summarise(
     dplyr::across(
-      .cols = c(n_obs, oth_stove),
+      .cols = c(n_obs, oth_exhaust),
       .fns = ~ sum(.x, na.rm = TRUE)
     )
   ) |>
@@ -1741,7 +1741,7 @@ oth_exhaust_by_team <- oth_exhaust |>
 oth_exhaust_overall <- oth_exhaust |>
 	dplyr::summarise(
     dplyr::across(
-      .cols = c(n_obs, oth_stove),
+      .cols = c(n_obs, oth_exhaust),
       .fns = ~ sum(.x, na.rm = TRUE)
     )
   ) |>
