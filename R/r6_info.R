@@ -25,21 +25,25 @@ info <- R6::R6Class(
     qnr_txt_hhold = NULL,
     qnr_txt_provided_hhold = NULL,
     qnrs_hhold = NULL,
+    qnr_var_hhold = NULL,
     # community
     qnr_use_comm = NULL,
     qnr_txt_comm = NULL,
     qnr_txt_provided_comm = NULL,
     qnrs_comm = NULL,
+    qnr_var_comm = NULL,
     # education facility
     qnr_use_educ = NULL,
     qnr_txt_educ = NULL,
     qnr_txt_provided_educ = NULL,
     qnrs_educ = NULL,
+    qnr_var_educ = NULL,
     # health facility
     qnr_use_health = NULL,
     qnr_txt_health = NULL,
     qnr_txt_provided_health = NULL,
     qnrs_health = NULL,
+    qnr_var_health = NULL,
     # data downloded
     downloaded_data = NULL,
     # data paths

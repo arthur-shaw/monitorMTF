@@ -55,6 +55,7 @@ mod_4_validate_1_validate_server <- function(id, parent, info){
 
       attributes <- create_attributes(
         proj_dir = info$proj_dir,
+        hhold_name = info$qnr_var_hhold,
         cases_df = cases
       )
 

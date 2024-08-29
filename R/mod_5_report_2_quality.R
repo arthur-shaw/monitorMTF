@@ -54,7 +54,7 @@ mod_5_report_2_quality_server <- function(id, parent, info){
       )
 
       main_file_path <- fs::path(
-        report$data_dir, "MTF_2023HH_Questionnaire.dta"
+        report$data_dir, paste0(info$qnr_var_hhold, ".dta")
       )
 
       report$data_exist <- fs::file_exists(main_file_path)
@@ -114,7 +114,8 @@ mod_5_report_2_quality_server <- function(id, parent, info){
       # compose parameter list
       doc_params <- list(
         proj_dir = info$proj_dir,
-        data_dir = report$data_dir
+        data_dir = report$data_dir,
+        hhold_name = info$qnr_var_hhold
       )
 
       # render document

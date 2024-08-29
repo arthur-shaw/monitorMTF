@@ -191,7 +191,8 @@ mod_2_setup_2_qnrs_details_server <- function(id, parent, info, qnr_name){
     # create a reactive container for the table
     # so that its values are accessible outside of the observeEvent scope
     matching_qnrs <- shiny::reactiveValues(
-      df = info[[paste0("qnrs_", qnr_name)]]
+      df = info[[paste0("qnrs_", qnr_name)]],
+      qnr_var = info[[paste0("qnr_var_", qnr_name)]]
     )
 
     shiny::observeEvent(input$search, {
@@ -212,6 +213,12 @@ mod_2_setup_2_qnrs_details_server <- function(id, parent, info, qnr_name){
           .data$title, .data$version, .data$variable,
           .data$questionnaireId
         )
+
+      matching_qnrs$qnr_var <- matching_qnrs$df |>
+        # take the first row, where variable qnr variable is assumed the same
+        dplyr::filter(dplyr::row_number() == 1) |>
+        # extract the variable column
+        dplyr::pull(variable)
 
       output$qnrs <- reactable::renderReactable({
         reactable::reactable(
@@ -236,6 +243,7 @@ mod_2_setup_2_qnrs_details_server <- function(id, parent, info, qnr_name){
       info[[paste0("qnr_txt_", qnr_name)]] <- input$qnr_txt
       info[[paste0("qnr_txt_provided_", qnr_name)]] <- TRUE
       info[[paste0("qnrs_", qnr_name)]] <- matching_qnrs$df
+      info[[paste0("qnr_var_", qnr_name)]] <- matching_qnrs$qnr_var
 
       # write R6 to disk
       info$write()

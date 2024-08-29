@@ -193,6 +193,7 @@ create_bool_attrib_obj_w_2_vars <- function(
 #' @return Data frame of attributes
 create_attributes <- function(
   proj_dir,
+  hhold_name,
   cases_df
 ) {
 
@@ -201,7 +202,7 @@ create_attributes <- function(
   # ============================================================================
 
   files <- c(
-    "MTF_2023HH_Questionnaire.dta",
+    paste0(hhold_name, ".dta"),
     "SEC_C_GENERATOR.dta",
     "SEC_C_RECHAR_BA.dta",
     "Solar_C_Device.dta",

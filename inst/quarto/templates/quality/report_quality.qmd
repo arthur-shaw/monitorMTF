@@ -5,6 +5,7 @@ toc-depth: 3
 embed-resources: true
 params:
   proj_dir: ""
+  hhold_name: ""
   data_dir: ""
 execute: 
   echo: false
@@ -118,7 +119,7 @@ reactable_style <- reactable::reactableTheme(
 #| label: load data
 
 files <- c(
-  "MTF_2023HH_Questionnaire.dta",
+  paste0(params$hhold_name, ".dta"),
   "SEC_C_GENERATOR.dta",
   "SEC_C_RECHAR_BA.dta",
   "Solar_C_Device.dta",
