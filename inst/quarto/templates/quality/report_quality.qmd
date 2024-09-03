@@ -633,13 +633,19 @@ reactable::reactable(
     # day
     pct_bottom_day = reactable::colDef(
       name = "Bottom<br>(%)",
-      format = reactable::colFormat(percent = TRUE),
+      format = reactable::colFormat(
+        percent = TRUE,
+        digits = 1
+      ),
       html = TRUE,
       na = "-"
     ),
     pct_top_day = reactable::colDef(
       name = "Top<br>(%)",
-      format = reactable::colFormat(percent = TRUE),
+      format = reactable::colFormat(
+        percent = TRUE,
+        digits = 1
+      ),
       html = TRUE,
       na = "-"
     ),
@@ -662,13 +668,19 @@ reactable::reactable(
     # night
     pct_bottom_night = reactable::colDef(
       name = "Bottom<br>(%)",
-      format = reactable::colFormat(percent = TRUE),
+      format = reactable::colFormat(
+        percent = TRUE,
+        digits = 1
+      ),
       html = TRUE,
       na = "-"
     ),
     pct_top_night = reactable::colDef(
       name = "Top<br>(%)",
-      format = reactable::colFormat(percent = TRUE),
+      format = reactable::colFormat(
+        percent = TRUE,
+        digits = 1
+      ),
       html = TRUE,
       na = "-"
     )
@@ -1193,7 +1205,7 @@ expenditure_item_table <- expenditure_item_stats |>
   ) |>
 	gt::fmt_integer(columns = dplyr::starts_with("n_")) |>
 	gt::fmt_percent(
-    columns = dplyr::starts_with("pct_dk"),
+    columns = dplyr::starts_with("pct_"),
     decimals = 1
   ) |>
 	gt::sub_missing() |>
