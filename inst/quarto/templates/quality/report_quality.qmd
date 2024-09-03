@@ -368,8 +368,8 @@ solar_oth_device_by_team <- solar_oth_device_counts |>
 solar_oth_device_overall <- solar_oth_device_counts |>
 	summarize_vars(overall_txt = "Overall")
 
-solar_oth_device_stats <- solar_oth_device_by_team |>
-	dplyr::bind_rows(solar_oth_device_overall) |>
+solar_oth_device_stats <- solar_oth_device_overall |>
+	dplyr::bind_rows(solar_oth_device_by_team) |>
 	compute_pct(num = n_oth_devices, denom = n_oth_devices) |>
 	dplyr::select(supervisor, n_solar, pct_oth_devices)
 
@@ -1141,8 +1141,8 @@ expenditure_items_overall <- expenditure_items_counts |>
   ) |>
 	dplyr::mutate(supervisor = "Overall")
 
-expenditure_item_stats <- expenditure_items_by_team |>
-	dplyr::bind_rows(expenditure_items_overall) |>
+expenditure_item_stats <- expenditure_items_overall |>
+	dplyr::bind_rows(expenditure_items_by_team) |>
 	dplyr::mutate(
     dplyr::across(
       .cols = dplyr::starts_with("no_"),
