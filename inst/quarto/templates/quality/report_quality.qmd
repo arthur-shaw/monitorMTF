@@ -891,6 +891,9 @@ dk_blackout_mini_grid <- supervisor_interviewer_interview |>
 
 dk_blackout <- dk_blackout_grid |>
 	dplyr::bind_rows(dk_blackout_mini_grid) |>
+  dplyr::distinct(
+    supervisor, interview__id, interview__key, source, .keep_all = TRUE
+  ) |>
 	tidyr::pivot_wider(
     id_cols = c(supervisor, interview__id, interview__key),
     names_from = source,
