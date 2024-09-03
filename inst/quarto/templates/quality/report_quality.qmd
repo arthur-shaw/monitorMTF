@@ -1101,25 +1101,58 @@ expenditure_items_counts <- supervisor_interviewer_interview |>
     # then, summing the values, where `TRUE` = 1
     dplyr::across(
       .cols = dplyr::starts_with("SEC_O_Q01__"),
-      .fns = ~ .x == 1
+      .fns = ~ dplyr::case_when(
+        .x == 1 ~ TRUE,
+        .x != 1 & !is.na(interview__id) ~ FALSE,
+        .x != 1 & is.na(interview__id) ~ NA,
+      )
     ),
     n_food_items = rowSums(
       dplyr::pick(dplyr::starts_with("SEC_O_Q01__")),
       na.rm = TRUE
     ),
+    n_food_items = dplyr::if_else(
+      condition = is.na(interview__id),
+      true = NA_integer_,
+      false = n_food_items
+    ),
     dplyr::across(
       .cols = dplyr::starts_with("SEC_O_(One|Q12)_Month"),
-      .fns = ~ .x == 1
+      .fns = ~ dplyr::case_when(
+        .x == 1 ~ TRUE,
+        .x != 1 & !is.na(interview__id) ~ FALSE,
+        .x != 1 & is.na(interview__id) ~ NA,
+      )
     ),
     n_non_food_items = rowSums(
       dplyr::pick(dplyr::starts_with("SEC_O_(One|Q12)_Month")),
       na.rm = TRUE
     ),
-    n_items = rowSums(dplyr::pick(n_food_items, n_non_food_items)),
+    n_non_food_items = dplyr::if_else(
+      condition = is.na(interview__id),
+      true = NA_integer_,
+      false = n_non_food_items
+    ),
+    n_items = rowSums(
+      dplyr::pick(n_food_items, n_non_food_items),
+      na.rm = TRUE
+    ),
     n_items_series = n_items,
-    no_food_items = (n_food_items == 0),
-    no_non_food_items = (n_non_food_items == 0),
-    no_items = (n_items == 0)
+    no_food_items = dplyr::if_else(
+      condition = !is.na(interview__id),
+      true = (n_food_items == 0),
+      false = NA_integer_
+    ),
+    no_non_food_items = dplyr::if_else(
+      condition = !is.na(interview__id),
+      true = (n_non_food_items == 0),
+      false = NA_integer_
+    ),
+    no_items = dplyr::if_else(
+      condition = !is.na(interview__id),
+      true = (n_items == 0),
+      false = NA_integer_
+    )
   ) |>
 	dplyr::select(
     supervisor, interview__id, interview__key,
@@ -1162,11 +1195,18 @@ expenditure_item_stats <- expenditure_items_overall |>
     dplyr::across(
       .cols = dplyr::starts_with("no_"),
       .fns = ~ dplyr::case_when(
-          .x > 0 ~ .x / n_obs,
-          .x == 0 ~ NA_real_,
-          is.na(.x) ~ NA_real_
+        .x > 0 ~ .x / n_obs,
+        .x == 0 ~ NA_real_,
+        is.na(.x) ~ NA_real_
       ),
       .names = "pct_{.col}"
+    ),
+    dplyr::across(
+      .cols = dplyr::starts_with("pct_"),
+      .fns = ~ dplyr::case_when(
+        n_obs == 0 ~ NA_real_,
+        n_obs != 0 ~ .x
+      )
     )
   ) |>
 	dplyr::select(
