@@ -443,7 +443,7 @@ mod_3_get_server <- function(id, info){
   )
 
   output$teams <- shiny::downloadHandler(
-    filename = "hhold.zip",
+    filename = "teams.zip",
     content = function(file) {
 
       file_path <- fs::path(info$data_dir_teams, "team_composition.dta")
