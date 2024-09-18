@@ -48,6 +48,15 @@ mod_2_setup_2_qnrs_ui <- function(id){
           id = ns("2_setup_2_qnrs_details_health"),
           qnr_txt = "health facility"
         )
+      ),
+      bslib::accordion_panel(
+        title = "Enterprise",
+        value = "enterprise",
+        icon = bsicons::bs_icon("briefcase"),
+        mod_2_setup_2_qnrs_details_ui(
+          id = ns("2_setup_2_qnrs_details_biz"),
+          qnr_txt = "enterprise"
+        )
       )
     )
   )
@@ -90,6 +99,13 @@ mod_2_setup_2_qnrs_server <- function(id, parent, info){
       parent = session,
       info = info,
       qnr_name = "health"
+    )
+
+    mod_2_setup_2_qnrs_details_server(
+      id = "2_setup_2_qnrs_details_biz",
+      parent = session,
+      info = info,
+      qnr_name = "biz"
     )
 
     # ==========================================================================
@@ -147,13 +163,30 @@ mod_2_setup_2_qnrs_server <- function(id, parent, info){
 
     })
 
-    # from health facility to get data
-    gargoyle::on("qnr_saved_educ", {
+    # from health facility to enterprise
+    gargoyle::on("qnr_saved_health", {
 
       # close health facility
       bslib::accordion_panel_close(
         id = "qnr_details",
         value = "health_facility"
+      )
+
+      # open enterprise
+      bslib::accordion_panel_open(
+        id = "qnr_details",
+        value = "enterprise"
+      )
+
+    })
+
+    # from enterprise to get data
+    gargoyle::on("qnr_saved_biz", {
+
+      # close enterprise
+      bslib::accordion_panel_close(
+        id = "qnr_details",
+        value = "enterprise"
       )
 
       # NOTE: get data is handled in app_server.R

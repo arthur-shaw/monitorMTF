@@ -51,6 +51,12 @@ mod_3_get_ui <- function(id){
           shiny::br(),
           shiny::br(),
           shiny::downloadButton(
+            outputId = ns("biz"),
+            label = "Enterprise"
+          ),
+          shiny::br(),
+          shiny::br(),
+          shiny::downloadButton(
             outputId = ns("teams"),
             label = "Team composition"
           )
@@ -206,6 +212,15 @@ mod_3_get_server <- function(id, info){
         qnr_dirs = dirs
       )
 
+      # enterprise
+      provision_data(
+        r6_obj = info,
+        qnr_type = "enterprise",
+        qnr_name = "biz",
+        qnr_dirs = dirs
+      )
+
+
       # team composition
       waiter::waiter_show(html = shiny::tagList(
         waiter::spin_ring(),
@@ -240,6 +255,7 @@ mod_3_get_server <- function(id, info){
       info$data_dir_comm_c <- dirs$comm_c
       info$data_dir_educ_c <- dirs$educ_c
       info$data_dir_health_c <- dirs$health_c
+      info$data_dir_biz_c <- dirs$biz_c
 
       # write updated info to disk
       info$write()
@@ -376,6 +392,36 @@ mod_3_get_server <- function(id, info){
       # files to zip
       files_to_zip <- fs::dir_ls(
         path = info$data_dir_health_c,
+        type = "file",
+        regexp = "\\.dta"
+      )
+
+      # prepare zip data file
+      zip::zipr(
+        zipfile = zip_file_path,
+        files = files_to_zip
+      )
+
+      # serve them up
+      fs::file_copy(
+        path = zip_file_path,
+        new_path = file
+      )
+
+    }
+
+  )
+
+  output$biz <- shiny::downloadHandler(
+    filename = "enterprise.zip",
+    content = function(file) {
+
+      # zip file path
+      zip_file_path <- fs::path(info$data_dir_biz_c, "enterprise.zip")
+
+      # files to zip
+      files_to_zip <- fs::dir_ls(
+        path = info$data_dir_biz_c,
         type = "file",
         regexp = "\\.dta"
       )

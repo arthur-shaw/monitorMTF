@@ -44,6 +44,12 @@ info <- R6::R6Class(
     qnr_txt_provided_health = NULL,
     qnrs_health = NULL,
     qnr_var_health = NULL,
+    # health facility
+    qnr_use_biz = NULL,
+    qnr_txt_biz = NULL,
+    qnr_txt_provided_biz = NULL,
+    qnrs_biz = NULL,
+    qnr_var_biz = NULL,
     # data downloded
     downloaded_data = NULL,
     # data paths
@@ -52,6 +58,7 @@ info <- R6::R6Class(
     data_dir_comm_c = NULL,
     data_dir_educ_c = NULL,
     data_dir_health_c = NULL,
+    data_dir_biz_c = NULL,
 
     #' @description
     #' Read past R6 values from disk
@@ -103,7 +110,8 @@ info <- R6::R6Class(
         "qnrs_hhold",
         "qnrs_comm",
         "qnrs_educ",
-        "qnrs_health"
+        "qnrs_health",
+        "qnrs_biz"
       )
 
       # vector fields

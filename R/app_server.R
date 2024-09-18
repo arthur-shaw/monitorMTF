@@ -42,6 +42,7 @@ app_server <- function(input, output, session) {
   gargoyle::init("qnr_saved_comm")
   gargoyle::init("qnr_saved_educ")
   gargoyle::init("qnr_saved_health")
+  gargoyle::init("qnr_saved_biz")
   gargoyle::init("downloaded_data")
   gargoyle::init("done_validate")
   gargoyle::init("done_edit")
@@ -98,7 +99,7 @@ app_server <- function(input, output, session) {
 
   })
 
-  gargoyle::on("qnr_saved_health", {
+  gargoyle::on("qnr_saved_biz", {
 
     bslib::nav_select(id = "navbar", selected = "get")
 

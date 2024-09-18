@@ -31,6 +31,7 @@ construct_data_paths <- function(dir) {
 #' - Community
 #' - Education facility
 #' - Health facility
+#' - Enterprise
 #'
 #' @param proj_dir Character. Path for project's root directory.
 #'
@@ -66,6 +67,11 @@ create_data_dirs <- function(proj_dir) {
   health_dirs <- construct_data_paths(dir = health_root_dir)
   fs::dir_create(path = health_dirs)
 
+  # enterprise
+  biz_root_dir <- fs::path(root_data_dir, "05_biz")
+  biz_dirs <- construct_data_paths(dir = biz_root_dir)
+  fs::dir_create(path = biz_dirs)
+
   # collect paths to created directories
   dirs <- list(
     # meta
@@ -85,7 +91,11 @@ create_data_dirs <- function(proj_dir) {
     # health
     health_r = health_dirs[1],
     health_dl = health_dirs[2],
-    health_c = health_dirs[3]
+    health_c = health_dirs[3],
+    # enterprise
+    biz_r = biz_dirs[1],
+    biz_dl = biz_dirs[2],
+    biz_c = biz_dirs[3]
   )
 
   return(dirs)

@@ -75,7 +75,7 @@ mod_2_setup_server <- function(id, info){
     })
 
     # from questionnaires to get data tab
-    gargoyle::on("qnr_saved_health", {
+    gargoyle::on("qnr_saved_biz", {
 
       # close questionnaires
       bslib::accordion_panel_close(
