@@ -102,8 +102,8 @@ Since `{monitorMTF}` is not yet available on CRAN, it can be installed from
 GitHub as follows:
 
 ``` r
-if (!require("pak")) install.packages("pak")
-pak::pak("arthur-shaw/monitorMTF")
+if (!require("devtools")) install.packages("devtools")
+devtools::install_github("arthur-shaw/monitorMTF")
 ```
 
 ## Usage 👩‍💻
