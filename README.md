@@ -115,7 +115,7 @@ To launch the application,
 - Open RStudio
 - Execute the following commands in the console
 
-```{r}
+```r
 # load the package
 library(monitorMTF)
 # run the application
