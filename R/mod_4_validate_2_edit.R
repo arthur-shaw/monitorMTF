@@ -89,7 +89,21 @@ mod_4_validate_2_edit_server <- function(id, parent, info){
               readOnly = TRUE
             ) |>
             # highlight current row in focus
-            rhandsontable::hot_table(highlightRow = TRUE)
+            rhandsontable::hot_table(highlightRow = TRUE) |>
+            # set column widths
+            rhandsontable::hot_cols(
+              # note rhandsontable only supports pixels
+              # unclear whether can set values as a function of table's area
+              # and have it adapt dynamically
+              # see: https://forum.handsontable.com/t/expect-column-width-in-percentage-in-handson-table/6908
+              # note also: `wordWrap` isn't supported, but text in the cells
+              # still appear to wrap
+              colWidths = c(
+                250,  # interview__id
+                600,  # reject_comment
+                150   # interview__status
+              )
+            )
 
         }
 
