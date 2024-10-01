@@ -14,6 +14,11 @@ mod_4_validate_ui <- function(id){
     bslib::accordion(
       id = ns("validate_steps"),
       bslib::accordion_panel(
+        title = "0. Select statuses",
+        value = "0_select_status",
+        mod_4_validate_0_set_status_ui(ns("4_validate_0_set_status_1"))
+      ),
+      bslib::accordion_panel(
         title = "1. Validate",
         value = "1_validate",
         mod_4_validate_1_validate_ui(ns("4_validate_1_validate_1"))
@@ -49,6 +54,11 @@ mod_4_validate_server <- function(id, info){
     # load server logic definitions of child modules
     # ==========================================================================
 
+    mod_4_validate_0_set_status_server(
+      id = "4_validate_0_set_status_1",
+      parent = session,
+      info = info
+    )
     mod_4_validate_1_validate_server(
       id = "4_validate_1_validate_1",
       parent = session,
@@ -73,6 +83,23 @@ mod_4_validate_server <- function(id, info){
     # ==========================================================================
     # manage opening and closing of accordion panels
     # ==========================================================================
+
+    # from select to validate
+    gargoyle::on("saved_statuses_to_validate", {
+
+      # close select
+      bslib::accordion_panel_close(
+        id = "validate_steps",
+        value = "0_select_status"
+      )
+
+      # open validate
+      bslib::accordion_panel_open(
+        id = "validate_steps",
+        value = "1_validate"
+      )
+
+    })
 
     # from validate to edit
     gargoyle::on("done_validate", {

@@ -44,7 +44,7 @@ info <- R6::R6Class(
     qnr_txt_provided_health = NULL,
     qnrs_health = NULL,
     qnr_var_health = NULL,
-    # health facility
+    # enterprise
     qnr_use_biz = NULL,
     qnr_txt_biz = NULL,
     qnr_txt_provided_biz = NULL,
@@ -59,6 +59,9 @@ info <- R6::R6Class(
     data_dir_educ_c = NULL,
     data_dir_health_c = NULL,
     data_dir_biz_c = NULL,
+    # interview statuses to validate
+    statuses_to_validate_provided = NULL,
+    statuses_to_validate = NULL,
 
     #' @description
     #' Read past R6 values from disk
@@ -116,6 +119,7 @@ info <- R6::R6Class(
 
       # vector fields
       vctr_fields <- c(
+        "statuses_to_validate"
       )
 
       # "scalar" fields

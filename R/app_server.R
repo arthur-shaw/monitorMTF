@@ -44,6 +44,7 @@ app_server <- function(input, output, session) {
   gargoyle::init("qnr_saved_health")
   gargoyle::init("qnr_saved_biz")
   gargoyle::init("downloaded_data")
+  gargoyle::init("saved_statuses_to_validate")
   gargoyle::init("done_validate")
   gargoyle::init("done_edit")
   gargoyle::init("done_reject")
