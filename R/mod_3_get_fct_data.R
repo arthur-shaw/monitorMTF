@@ -333,75 +333,84 @@ provision_data <- function(
   qnr_dirs
 ) {
 
-  # inform the user that microdata are being fetched
-  waiter::waiter_show(
-    html = shiny::tagList(
-      waiter::spin_ring(),
-      shiny::h4(glue::glue("Fetching {qnr_type} data"))
+  # check whether the questionnaire is used
+  qnr_used <- r6_obj[[paste0("qnr_use_", qnr_name)]]
+
+  # if so, provision the data
+  # if not, silently exit the function
+  if (qnr_used == TRUE) {
+
+    # inform the user that microdata are being fetched
+    waiter::waiter_show(
+      html = shiny::tagList(
+        waiter::spin_ring(),
+        shiny::h4(glue::glue("Fetching {qnr_type} data"))
+      )
     )
-  )
 
-  # extract ID and title for questionnaires matching user-provided pattern
-  qnr_ids <- r6_obj[[paste0("qnrs_", qnr_name)]] |>
-    # compose questionnaire ID expected by `susoflows::download_data()`
-    # format: {GUID}${version}
-    dplyr::mutate(id = paste0(.data$questionnaireId, "$", .data$version)) |>
-    dplyr::pull(.data$id)
-  qnr_titles <- r6_obj[[paste0("qnrs_", qnr_name)]] |>
-    dplyr::pull(.data$title)
+    # extract ID and title for questionnaires matching user-provided pattern
+    qnr_ids <- r6_obj[[paste0("qnrs_", qnr_name)]] |>
+      # compose questionnaire ID expected by `susoflows::download_data()`
+      # format: {GUID}${version}
+      dplyr::mutate(id = paste0(.data$questionnaireId, "$", .data$version)) |>
+      dplyr::pull(.data$id)
+    qnr_titles <- r6_obj[[paste0("qnrs_", qnr_name)]] |>
+      dplyr::pull(.data$title)
 
-  # prepare to loop over questionnaire IDs
-  qnr_tot <- length(qnr_ids)
-  qnr_n <- 1
+    # prepare to loop over questionnaire IDs
+    qnr_tot <- length(qnr_ids)
+    qnr_n <- 1
 
-  # download by iterating through each matching questionnaire
-  for(qnr_id in qnr_ids) {
+    # download by iterating through each matching questionnaire
+    for(qnr_id in qnr_ids) {
 
-    # extract title of current questionnaire
-    qnr_title <- qnr_titles[qnr_n]
+      # extract title of current questionnaire
+      qnr_title <- qnr_titles[qnr_n]
 
-    # update user on which data is being downloaded
+      # update user on which data is being downloaded
+      waiter::waiter_show(html = shiny::tagList(
+        waiter::spin_ring(),
+        shiny::h4(
+          glue::glue("
+          Downloading data for questionnaire {qnr_n} of {qnr_tot} :
+          {qnr_title}"
+          )
+        )
+      ))
+
+      # download data
+      susoflows::download_data(
+        qnr_id = qnr_id,
+        export_type = "STATA",
+        path = qnr_dirs[[paste0(qnr_name, "_dl")]],
+        server = r6_obj$server,
+        workspace = r6_obj$workspace,
+        user = r6_obj$user,
+        password = r6_obj$password
+      )
+
+      # increment questionnaire counter
+      qnr_n <- qnr_n + 1
+
+    }
+    # unpack downloaded data
     waiter::waiter_show(html = shiny::tagList(
       waiter::spin_ring(),
-      shiny::h4(
-        glue::glue("
-        Downloading data for questionnaire {qnr_n} of {qnr_tot} :
-        {qnr_title}"
-        )
-      )
+      shiny::h4(glue::glue("Unzipping {qnr_type} data"))
     ))
+    unpack_all_zip_to_dir(qnr_dirs[[paste0(qnr_name, "_dl")]])
 
-    # download data
-    susoflows::download_data(
-      qnr_id = qnr_id,
-      export_type = "STATA",
-      path = qnr_dirs[[paste0(qnr_name, "_dl")]],
-      server = r6_obj$server,
-      workspace = r6_obj$workspace,
-      user = r6_obj$user,
-      password = r6_obj$password
+    # combine downloaded data
+    waiter::waiter_show(html = shiny::tagList(
+      waiter::spin_ring(),
+      shiny::h4(glue::glue("Combining {qnr_type} data"))
+    ))
+    combine_and_save_all_dta(
+      dir_in = qnr_dirs[[paste0(qnr_name, "_dl")]],
+      dir_out = qnr_dirs[[paste0(qnr_name, "_c")]]
     )
 
-    # increment questionnaire counter
-    qnr_n <- qnr_n + 1
-
   }
-  # unpack downloaded data
-  waiter::waiter_show(html = shiny::tagList(
-    waiter::spin_ring(),
-    shiny::h4(glue::glue("Unzipping {qnr_type} data"))
-  ))
-  unpack_all_zip_to_dir(qnr_dirs[[paste0(qnr_name, "_dl")]])
-
-  # combine downloaded data
-  waiter::waiter_show(html = shiny::tagList(
-    waiter::spin_ring(),
-    shiny::h4(glue::glue("Combining {qnr_type} data"))
-  ))
-  combine_and_save_all_dta(
-    dir_in = qnr_dirs[[paste0(qnr_name, "_dl")]],
-    dir_out = qnr_dirs[[paste0(qnr_name, "_c")]]
-  )
 
 }
 
