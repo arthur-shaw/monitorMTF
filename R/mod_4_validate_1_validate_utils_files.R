@@ -1,6 +1,8 @@
 #' Identify cases to review
 #'
 #' @param proj_dir Character. Path to the project directory.
+#' @param hhold_name Character. Name of the main household hhold data file.
+#' Without extension. Expected to come from `info$qnr_var_hhold`.
 #' 
 #' @return Data frame. Cases to review, with the following columns:
 #'
@@ -11,11 +13,14 @@
 #' @importFrom fs path
 #' @importFrom haven read_dta write_dta
 #' @importFrom dplyr filter mutate select
-identify_cases_to_review <- function(proj_dir) {
+identify_cases_to_review <- function(
+  proj_dir,
+  hhold_name
+) {
 
   file_path <- fs::path(
       proj_dir, "01_data", "01_hhold", "02_combined",
-      "MTF_2023HH_Questionnaire.dta"
+      paste0(hhold_name, ".dta")
     )
 
   cases <- file_path |>

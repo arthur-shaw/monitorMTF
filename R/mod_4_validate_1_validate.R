@@ -51,7 +51,10 @@ mod_4_validate_1_validate_server <- function(id, parent, info){
       # Execute decision-making workflow
       # ------------------------------------------------------------------------
 
-      cases <- identify_cases_to_review(proj_dir = info$proj_dir)
+      cases <- identify_cases_to_review(
+        proj_dir = info$proj_dir,
+        hhold_name = info$qnr_var_hhold
+      )
 
       attributes <- create_attributes(
         proj_dir = info$proj_dir,
