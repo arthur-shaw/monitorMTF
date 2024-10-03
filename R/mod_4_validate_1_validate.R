@@ -48,46 +48,69 @@ mod_4_validate_1_validate_server <- function(id, parent, info){
       delete_stale_data(dir = dirs$report_hh)
 
       # ------------------------------------------------------------------------
-      # Execute decision-making workflow
+      # Identify cases to validate
       # ------------------------------------------------------------------------
 
       cases <- identify_cases_to_review(
         proj_dir = info$proj_dir,
-        hhold_name = info$qnr_var_hhold
-      )
-
-      attributes <- create_attributes(
-        proj_dir = info$proj_dir,
         hhold_name = info$qnr_var_hhold,
-        cases_df = cases
-      )
-
-      issues <- create_issues(attributes = attributes)
-
-      decisions <- create_decisions(
-        proj_dir = info$proj_dir,
-        cases_to_review = cases,
-        issues = issues
+        statuses_to_validate = info$statuses_to_validate
       )
 
       # ------------------------------------------------------------------------
-      # Save outputs to disk
+      # Execute decision-making workflow
       # ------------------------------------------------------------------------
 
-      write_df_to_disk(df = cases, dir = dirs$recommend_hh)
-      write_df_to_disk(df = attributes, dir = dirs$recommend_hh)
-      write_df_to_disk(df = issues, dir = dirs$recommend_hh)
+      if (nrow(cases) > 0) {
 
-      write_df_list_to_disk(df_list = decisions, dir = dirs$recommend_hh)
+        attributes <- create_attributes(
+          proj_dir = info$proj_dir,
+          hhold_name = info$qnr_var_hhold,
+          cases_df = cases
+        )
 
-      # ------------------------------------------------------------------------
-      # send signal that validation is complete
-      # ------------------------------------------------------------------------
+        issues <- create_issues(attributes = attributes)
 
-      gargoyle::trigger("done_validate")
+        decisions <- create_decisions(
+          proj_dir = info$proj_dir,
+          cases_to_review = cases,
+          issues = issues
+        )
+
+        # ----------------------------------------------------------------------
+        # Save outputs to disk
+        # ----------------------------------------------------------------------
+
+        write_df_to_disk(df = cases, dir = dirs$recommend_hh)
+        write_df_to_disk(df = attributes, dir = dirs$recommend_hh)
+        write_df_to_disk(df = issues, dir = dirs$recommend_hh)
+
+        write_df_list_to_disk(df_list = decisions, dir = dirs$recommend_hh)
+
+        # ----------------------------------------------------------------------
+        # send signal that validation is complete
+        # ----------------------------------------------------------------------
+
+        gargoyle::trigger("done_validate")
+
+      } else {
+
+        shinyFeedback::showToast(
+          type = "info",
+          title = "No cases to validate",
+          message = glue::glue(
+            "There are currently no cases to validate.",
+            "To be validated, an interview must have (1) the interview",
+            "status(es) selected in the previous section and (2) questions",
+            "answered that indicate that the interview is complete.",
+            "No interviews in the downloaded data meet those criteria.",
+            .sep = " "
+          )
+        )
+
+      }
 
     })
-
 
   })
 }
