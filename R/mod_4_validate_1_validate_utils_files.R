@@ -15,7 +15,8 @@
 #' @importFrom dplyr filter mutate select
 identify_cases_to_review <- function(
   proj_dir,
-  hhold_name
+  hhold_name,
+  statuses_to_validate
 ) {
 
   file_path <- fs::path(
@@ -25,6 +26,8 @@ identify_cases_to_review <- function(
 
   cases <- file_path |>
     haven::read_dta() |>
+    # filter to complete interviews
+    # by questionnaire content
     dplyr::filter(
       # found household
       SEC_Cov_Q01 == 1 &
@@ -33,6 +36,8 @@ identify_cases_to_review <- function(
       # have consent
       SEC_Cov_Q05 == 1
     ) |>
+    # by statuses to validate
+    dplyr::filter(interview__status %in% statuses_to_validate) |>
     dplyr::mutate(interview_complete = 1) |>
     dplyr::select(
       interview__id, interview__key,
