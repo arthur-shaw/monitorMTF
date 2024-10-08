@@ -123,10 +123,10 @@ mod_2_setup_1_suso_creds_server <- function(id, parent, info){
         # check credentials are valid
         creds_ok <- shiny::reactive({
           susoapi::check_credentials(
-            # server = input$server,
-            # workspace = input$workspace,
-            # user = input$user,
-            # password = input$password,
+            server = input$server,
+            workspace = input$workspace,
+            user = input$user,
+            password = input$password,
             verbose = TRUE
           )
         })
