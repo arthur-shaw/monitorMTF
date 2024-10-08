@@ -31,7 +31,7 @@ Imports:
     shiny (>= 1.8.1.1),
     shinyFeedback,
     shinyjs,
-    susoapi (>= 0.2.0),
+    susoapi (>= 0.2.1),
     susoflows (>= 0.1.0),
     susoreview (>= 0.1.0),
     waiter,
