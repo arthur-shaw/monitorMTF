@@ -72,9 +72,9 @@ mod_5_report_2_quality_server <- function(id, parent, info){
 
     gargoyle::on("downloaded_data", {
 
-      report$exist <- TRUE
+      report$data_exist <- TRUE
 
-      if (report$data_exist == FALSE) {
+      if (report$data_exist == TRUE) {
 
         shiny::updateActionButton(
           inputId = "create",
