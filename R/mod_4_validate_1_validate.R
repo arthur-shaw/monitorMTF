@@ -26,7 +26,21 @@ mod_4_validate_1_validate_server <- function(id, parent, info){
   moduleServer( id, function(input, output, session){
     ns <- session$ns
 
+    # ==========================================================================
+    # react to run button
+    # ==========================================================================
+
+    # create a waitress that overlays the create button to communicate progress
+    validate_waitress <- waiter::Waitress$new(
+      selector = "button.action-button",
+      theme = "overlay-percent",
+      infinite = TRUE
+    )
+
     shiny::observeEvent(input$run, {
+
+      # start the progress overlay
+      validate_waitress$start()
 
       # ------------------------------------------------------------------------
       # Prepare file system
@@ -92,6 +106,9 @@ mod_4_validate_1_validate_server <- function(id, parent, info){
         # ----------------------------------------------------------------------
 
         gargoyle::trigger("done_validate")
+
+        # close the progress overlay
+        validate_waitress$close()
 
       } else {
 
