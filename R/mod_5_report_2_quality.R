@@ -87,7 +87,17 @@ mod_5_report_2_quality_server <- function(id, parent, info){
     # react to create button
     # ==========================================================================
 
+    # create a waitress that overlays the create button to communicate progress
+    report_waitress <- waiter::Waitress$new(
+      selector = "button.action-button",
+      theme = "overlay-percent",
+      infinite = TRUE
+    )
+
     shiny::observeEvent(input$create, {
+
+      # start the progress overlay
+      report_waitress$start()
 
       # ------------------------------------------------------------------------
       # prepare file system
@@ -135,6 +145,9 @@ mod_5_report_2_quality_server <- function(id, parent, info){
         )
 
       )
+
+      # close the progress overlay
+      report_waitress$close()
 
     })
 

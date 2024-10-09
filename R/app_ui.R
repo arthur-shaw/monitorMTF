@@ -67,6 +67,7 @@ golem_add_external_resources <- function() {
     # for example, you can add shinyalert::useShinyalert()
     shinyjs::useShinyjs(),
     shinyFeedback::useShinyFeedback(),
-    waiter::use_waiter()
+    waiter::use_waiter(),
+    waiter::use_waitress()
   )
 }
