@@ -15,10 +15,8 @@ mod_5_report_2_quality_ui <- function(id){
       inputId = ns("create"),
       "Create"
     ),
-    shiny::downloadButton(
-      outputId = ns("download"),
-      label = "Download"
-    )
+    # render download button UI here when conditions in server satisfied
+    shiny::uiOutput(outputId = ns("dl_button"))
 
   )
 }
@@ -123,6 +121,19 @@ mod_5_report_2_quality_server <- function(id, parent, info){
         report_type = "quality",
         proj_dir = info$proj_dir,
         params = doc_params
+      )
+
+      # ------------------------------------------------------------------------
+      # show report download button
+      # ------------------------------------------------------------------------
+
+      output$dl_button <- shiny::renderUI(
+
+        shiny::downloadButton(
+          outputId = ns("download"),
+          label = "Download"
+        )
+
       )
 
     })
