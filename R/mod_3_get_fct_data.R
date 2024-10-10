@@ -237,12 +237,22 @@ combine_and_save_dta <- function(
     dplyr::filter(.data$file_name == name) |>
     dplyr::pull(.data$path)
 
+  # variable labels
+  # so that can assign labels where purrr drops them
+  # returns named list of the form needed by `labelled::set_variable_labels()`
+  lbls <- file_paths[1] |>
+    haven::read_dta(n_max = 0) |>
+    labelled::var_label()
+
   # data frame
   # so that can assign this value to a name
-  df <- purrr::map_dfr(
-    .x = file_paths,
-    .f = ~ haven::read_dta(file = .x)
-  )
+  df <- file_paths |>
+    purrr::map(.f = ~ haven::read_dta(file = .x)) |>
+    purrr::list_rbind()
+
+  # apply variable labels
+  df <- df |>
+    labelled::set_variable_labels(.labels = lbls)
 
   # save to destination directory
   haven::write_dta(data = df, path = fs::path(dir, name))
