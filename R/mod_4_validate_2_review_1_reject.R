@@ -1,4 +1,4 @@
-#' 4_validate_2_edit UI Function
+#' 4_validate_2_review_1_reject UI Function
 #'
 #' @description A shiny Module.
 #'
@@ -7,7 +7,7 @@
 #' @noRd 
 #'
 #' @importFrom shiny NS tagList 
-mod_4_validate_2_edit_ui <- function(id){
+mod_4_validate_2_review_1_reject_ui <- function(id) {
   ns <- NS(id)
   tagList(
 
@@ -20,11 +20,11 @@ mod_4_validate_2_edit_ui <- function(id){
   )
 }
     
-#' 4_validate_2_edit Server Functions
+#' 4_validate_2_review_1_reject Server Functions
 #'
 #' @noRd 
-mod_4_validate_2_edit_server <- function(id, parent, info){
-  moduleServer( id, function(input, output, session){
+mod_4_validate_2_review_1_reject_server <- function(id, parent, info){
+  moduleServer(id, function(input, output, session){
     ns <- session$ns
 
     # ==========================================================================
@@ -41,6 +41,9 @@ mod_4_validate_2_edit_server <- function(id, parent, info){
 
     gargoyle::on("load_project", {
 
+      # require inputs
+      shiny::req(info$proj_dir)
+
       # set the path once project is loaded
       to_reject_file$path <- fs::path(
         info$proj_dir, "02_decisions", "02_recommendations", "01_hhold",
@@ -54,16 +57,23 @@ mod_4_validate_2_edit_server <- function(id, parent, info){
 
     gargoyle::on("done_validate", {
 
+      # require inputs
+      shiny::req(info$proj_dir)
+
+      # set path to file
       to_reject_file$path <- fs::path(
         info$proj_dir, "02_decisions", "02_recommendations", "01_hhold",
         "to_reject_api.dta"
       )
 
+      # determine whether the file exists in the project
       to_reject_file$exists <- fs::file_exists(to_reject_file$path)
 
     })
 
     output$to_reject <- rhandsontable::renderRHandsontable({
+
+      shiny::req(to_reject_file$path)
 
       if (to_reject_file$exists == FALSE) {
         NULL
@@ -112,10 +122,11 @@ mod_4_validate_2_edit_server <- function(id, parent, info){
 
     })
 
-    shiny::observeEvent(input$save, {
+    # ==========================================================================
+    # react to save button
+    # ==========================================================================
 
-      # require inputs in the table
-      shiny::req(input$to_reject)
+    shiny::observeEvent(input$save, {
 
       # extract data frame from table
       to_reject_edited <- rhandsontable::hot_to_r(input$to_reject)
@@ -138,7 +149,7 @@ mod_4_validate_2_edit_server <- function(id, parent, info){
 }
     
 ## To be copied in the UI
-# mod_4_validate_2_edit_ui("4_validate_2_edit_1")
+# mod_4_validate_2_review_1_reject_ui("4_validate_2_review_1_reject_1")
     
 ## To be copied in the server
-# mod_4_validate_2_edit_server("4_validate_2_edit_1")
+# mod_4_validate_2_review_1_reject_server("4_validate_2_review_1_reject_1")
