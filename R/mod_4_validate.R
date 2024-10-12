@@ -24,9 +24,9 @@ mod_4_validate_ui <- function(id){
         mod_4_validate_1_validate_ui(ns("4_validate_1_validate_1"))
       ),
       bslib::accordion_panel(
-        title = "2. Edit (optional)",
-        value = "2_edit",
-        mod_4_validate_2_edit_ui(ns("4_validate_2_edit_1"))
+        title = "2. Review",
+        value = "2_review",
+        mod_4_validate_2_review_ui(ns("4_validate_2_review_1"))
       ),
       bslib::accordion_panel(
         title = "3. Reject",
@@ -64,8 +64,8 @@ mod_4_validate_server <- function(id, info){
       parent = session,
       info = info
     )
-    mod_4_validate_2_edit_server(
-      id = "4_validate_2_edit_1",
+    mod_4_validate_2_review_server(
+      id = "4_validate_2_review_1",
       parent = session,
       info = info
     )
@@ -113,7 +113,7 @@ mod_4_validate_server <- function(id, info){
       # open edit
       bslib::accordion_panel_open(
         id = "validate_steps",
-        value = "2_edit"
+        value = "2_review"
       )
 
     })
@@ -124,7 +124,7 @@ mod_4_validate_server <- function(id, info){
       # close edit
       bslib::accordion_panel_close(
         id = "validate_steps",
-        value = "2_edit"
+        value = "2_review"
       )
 
       # open reject
