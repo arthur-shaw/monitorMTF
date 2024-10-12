@@ -89,7 +89,7 @@ mod_5_report_2_quality_server <- function(id, parent, info){
 
     # create a waitress that overlays the create button to communicate progress
     report_waitress <- waiter::Waitress$new(
-      selector = "button.action-button",
+      selector = '.accordion-item[data-value="quality_panel"] button.action-button',
       theme = "overlay-percent",
       infinite = TRUE
     )

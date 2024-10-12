@@ -32,7 +32,7 @@ mod_4_validate_1_validate_server <- function(id, parent, info){
 
     # create a waitress that overlays the create button to communicate progress
     validate_waitress <- waiter::Waitress$new(
-      selector = "button.action-button",
+      selector = '.accordion-item[data-value="1_validate"] button.action-button',
       theme = "overlay-percent",
       infinite = TRUE
     )
