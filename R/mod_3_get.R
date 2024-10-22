@@ -382,7 +382,7 @@ mod_3_get_server <- function(id, info){
 
   )
 
-  output$educ <- shiny::downloadHandler(
+  output$health <- shiny::downloadHandler(
     filename = "health.zip",
     content = function(file) {
 
