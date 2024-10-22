@@ -578,28 +578,6 @@ create_issues <- function(attributes) {
   # ============================================================================
 
   # ----------------------------------------------------------------------------
-  # Fuel use => enterprise, but no enterprise reported
-  # ----------------------------------------------------------------------------
-
-  issue_biz_implied_not_reported <- susoreview::create_issue(
-    df_attribs = attributes,
-    vars = c("fuel_used_for_biz", "have_biz"),
-    where = fuel_used_for_biz == 1 & have_biz == 0,
-    type = 1,
-    desc = "Business implied but not reported",
-    comment = paste(
-      "ERROR: Business implied but not reported.",
-      "There seems to be a contradiction in the answers provided.",
-      "In section I, at least one fuel is used for a home-based income activity.",
-      "Yet in section A1, no household member reports running a non-farm enterprise.",
-      "Please check the answers to questions in these sections.",
-      "If all answers are correct, then leave a comment for supervisors to",
-      "understand these seemingly contradictory answers.",
-      sep = " "
-    )
-  )
-
-  # ----------------------------------------------------------------------------
   # Solar powers asset that is not owned
   # ----------------------------------------------------------------------------
 

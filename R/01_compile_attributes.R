@@ -920,27 +920,6 @@ create_attributes <- function(
   ) |>
   dplyr::bind_rows()
 
-
-  # ----------------------------------------------------------------------------
-  # Home-based enterprise
-  # ----------------------------------------------------------------------------
-
-  # fuel use => enterprise
-  attrib_fuel_used_for_biz <- susoreview::any_obs(
-    df = fuels,
-    where = SEC_I_Q03__6 == 1,
-    attrib_name = "fuel_used_for_biz",
-    attrib_vars = "SEC_I_Q03"
-  )
-
-  # enterprise reported
-  attrib_have_biz <- susoreview::extract_attribute(
-    df = hholds,
-    var = SEC_A2_Q16,
-    attrib_name = "have_biz",
-    attrib_vars = "SEC_A2_Q16"
-  )
-
   # ----------------------------------------------------------------------------
   # Assets powered by solar system
   # ----------------------------------------------------------------------------
