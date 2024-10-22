@@ -124,6 +124,40 @@ mod_3_get_server <- function(id, info){
     shiny::observeEvent(input$fetch_data, {
 
       # ------------------------------------------------------------------------
+      # Require inputs
+      # ------------------------------------------------------------------------
+
+      # require project directory
+      shiny::req(info$proj_dir)
+
+      # need fields used by provisioning function
+      # note: using
+      # `need()` so that I can define which values are considered "truthy"
+      # `validate()` so that message appears in UI
+      shiny::validate(
+        shiny::need(
+          expr = !is.null(info$qnr_use_hhold),
+          message = "Need to know whether household questionnaire is used"
+        ),
+        shiny::need(
+          expr = !is.null(info$qnr_use_comm),
+          message = "Need to know whether community questionnaire is used"
+        ),
+        shiny::need(
+          expr = !is.null(info$qnr_use_educ),
+          message = "Need to know whether education questionnaire is used"
+        ),
+        shiny::need(
+          expr = !is.null(info$qnr_use_health),
+          message = "Need to know whether health questionnaire is used"
+        ),
+        shiny::need(
+          expr = !is.null(info$qnr_use_biz),
+          message = "Need to know whether enterprise questionnaire is used"
+        )
+      )
+
+      # ------------------------------------------------------------------------
       # Show waiter
       # ------------------------------------------------------------------------
 
@@ -286,7 +320,7 @@ mod_3_get_server <- function(id, info){
 
 
     })
-  
+
   # ============================================================================
   # react to download buttons
   # ============================================================================
@@ -294,6 +328,13 @@ mod_3_get_server <- function(id, info){
   output$hhold <- shiny::downloadHandler(
     filename = "hhold.zip",
     content = function(file) {
+
+      # return null if data files does not exist
+      # this leads Shiny not to serve up an `.htm` file
+      data_file_exists <- fs::file_exists(
+        fs::path(info$data_dir_hhold_c, paste0(info$qnr_var_hhold, ".dta"))
+      )
+      shiny::req(data_file_exists)
 
       # zip file path
       zip_file_path <- fs::path(info$data_dir_hhold_c, "hhold.zip")
@@ -324,6 +365,12 @@ mod_3_get_server <- function(id, info){
   output$comm <- shiny::downloadHandler(
     filename = "community.zip",
     content = function(file) {
+
+      # require that file(s) be present
+      data_file_exists <- fs::file_exists(
+        fs::path(info$data_dir_comm_c, paste0(info$qnr_var_comm, ".dta"))
+      )
+      shiny::req(data_file_exists)
 
       # zip file path
       zip_file_path <- fs::path(info$data_dir_comm_c, "community.zip")
@@ -356,6 +403,12 @@ mod_3_get_server <- function(id, info){
     filename = "education.zip",
     content = function(file) {
 
+      # require that file(s) be present
+      data_file_exists <- fs::file_exists(
+        fs::path(info$data_dir_educ_c, paste0(info$qnr_var_educ, ".dta"))
+      )
+      shiny::req(data_file_exists)
+
       # zip file path
       zip_file_path <- fs::path(info$data_dir_educ_c, "education.zip")
 
@@ -386,6 +439,12 @@ mod_3_get_server <- function(id, info){
     filename = "health.zip",
     content = function(file) {
 
+      # require that file(s) be present
+      data_file_exists <- fs::file_exists(
+        fs::path(info$data_dir_health_c, paste0(info$qnr_var_health, ".dta"))
+      )
+      shiny::req(data_file_exists)
+
       # zip file path
       zip_file_path <- fs::path(info$data_dir_health_c, "health.zip")
 
@@ -415,6 +474,12 @@ mod_3_get_server <- function(id, info){
   output$biz <- shiny::downloadHandler(
     filename = "enterprise.zip",
     content = function(file) {
+
+      # require that file(s) be present
+      data_file_exists <- fs::file_exists(
+        fs::path(info$data_dir_biz_c, paste0(info$qnr_var_biz, ".dta"))
+      )
+      shiny::req(data_file_exists)
 
       # zip file path
       zip_file_path <- fs::path(info$data_dir_biz_c, "enterprise.zip")
@@ -448,7 +513,11 @@ mod_3_get_server <- function(id, info){
 
       file_path <- fs::path(info$data_dir_teams, "team_composition.dta")
 
-      # serve up single file 
+      # require that file(s) be present
+      data_file_exists <- fs::file_exists(file_path)
+      shiny::req(data_file_exists)
+
+      # serve up single file
       fs::file_copy(
         path = file_path,
         new_path = file

@@ -39,6 +39,11 @@ mod_4_validate_1_validate_server <- function(id, parent, info){
 
     shiny::observeEvent(input$run, {
 
+      # require inputs from R6
+      shiny::req(
+        info$proj_dir, info$qnr_var_hhold, info$statuses_to_validate
+      )
+
       # start the progress overlay
       validate_waitress$start()
 

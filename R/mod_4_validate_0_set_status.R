@@ -62,6 +62,9 @@ mod_4_validate_0_set_status_server <- function(id, parent, info){
 
     shiny::observeEvent(input$save, {
 
+      # require user inputs
+      shiny::req(input$statuses_to_validate)
+
       # capture input in R6
       info$statuses_to_validate_provided <- TRUE
       info$statuses_to_validate <- input$statuses_to_validate

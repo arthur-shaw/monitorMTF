@@ -43,6 +43,9 @@ mod_5_report_2_quality_server <- function(id, parent, info){
 
     gargoyle::on("load_project", {
 
+      # require project directory and other inputs
+      shiny::req(info$proj_dir, info$qnr_var_hhold)
+
       report$data_dir <- fs::path(
         info$proj_dir, "01_data", "01_hhold", "02_combined"
       )
@@ -96,8 +99,32 @@ mod_5_report_2_quality_server <- function(id, parent, info){
 
     shiny::observeEvent(input$create, {
 
+      # require inputs
+      shiny::req(
+        # project directory
+        info$proj_dir,
+        # report parameters
+        info$qnr_var_hhold
+      )
+
       # start the progress overlay
       report_waitress$start()
+
+      # ------------------------------------------------------------------------
+      # set reactive values
+      # ------------------------------------------------------------------------
+
+      report$data_dir <- fs::path(
+        info$proj_dir, "01_data", "01_hhold", "02_combined"
+      )
+
+      report$output_path <- fs::path(
+        info$proj_dir, "03_reports", "02_quality", "report_quality.html"
+      )
+
+      main_file_path <- fs::path(
+        report$data_dir, paste0(info$qnr_var_hhold, ".dta")
+      )
 
       # ------------------------------------------------------------------------
       # prepare file system

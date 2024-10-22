@@ -134,6 +134,9 @@ mod_2_setup_2_qnrs_details_server <- function(id, parent, info, qnr_name){
         # otherwise, load past questionnaires
         if (is.null(info[[paste0("qnr_txt_provided_", qnr_name)]])) {
 
+          # require server credentials
+          shiny::req(info$server, info$workspace, info$user, info$password)
+
           # fetch all questionnaires
           qnrs <- susoapi::get_questionnaires(
             server = info$server,
@@ -159,12 +162,17 @@ mod_2_setup_2_qnrs_details_server <- function(id, parent, info, qnr_name){
         } else if (!is.null(info[[paste0("qnr_txt_provided_", qnr_name)]])) {
 
           output$qnrs <- reactable::renderReactable({
+
+            # require data frame in R6
+            shiny::req(info[[paste0("qnrs_", qnr_name)]])
+
             reactable::reactable(
               data = info[[paste0("qnrs_", qnr_name)]],
               columns = list(
                 questionnaireId = reactable::colDef(show = FALSE)
               )
             )
+
           })
 
         }
@@ -196,6 +204,9 @@ mod_2_setup_2_qnrs_details_server <- function(id, parent, info, qnr_name){
     )
 
     shiny::observeEvent(input$search, {
+
+      # require server credentials
+      shiny::req(info$server, info$workspace, info$user, info$password)
 
       matching_qnrs$df <- susoapi::get_questionnaires(
         server = info$server,
@@ -237,6 +248,9 @@ mod_2_setup_2_qnrs_details_server <- function(id, parent, info, qnr_name){
     # ==========================================================================
 
     shiny::observeEvent(input$save, {
+
+      # require user inputs and intermediary outputs in this module
+      shiny::req(input$qnr_txt, matching_qnrs$df, matching_qnrs$qnr_var)
 
       # capture input in R6
       info[[paste0("qnr_use_", qnr_name)]] <- TRUE

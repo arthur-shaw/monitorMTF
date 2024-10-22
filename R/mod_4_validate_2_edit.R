@@ -50,7 +50,6 @@ mod_4_validate_2_edit_server <- function(id, parent, info){
       # determine whether the file exists in the project
       to_reject_file$exists <- fs::file_exists(to_reject_file$path)
 
-
     })
 
     gargoyle::on("done_validate", {
@@ -61,6 +60,7 @@ mod_4_validate_2_edit_server <- function(id, parent, info){
       )
 
       to_reject_file$exists <- fs::file_exists(to_reject_file$path)
+
     })
 
     output$to_reject <- rhandsontable::renderRHandsontable({
@@ -113,6 +113,9 @@ mod_4_validate_2_edit_server <- function(id, parent, info){
     })
 
     shiny::observeEvent(input$save, {
+
+      # require inputs in the table
+      shiny::req(input$to_reject)
 
       # extract data frame from table
       to_reject_edited <- rhandsontable::hot_to_r(input$to_reject)

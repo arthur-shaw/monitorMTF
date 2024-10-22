@@ -40,6 +40,9 @@ mod_4_validate_3_reject_server <- function(id, parent, info){
 
     gargoyle::on("load_project", {
 
+      # require project directory
+      shiny::req(info$proj_dir)
+
       decisions_file$path <- fs::path(
         info$proj_dir, "02_decisions", "03_decisions", "01_hhold",
         "to_reject_api.dta"
@@ -59,6 +62,9 @@ mod_4_validate_3_reject_server <- function(id, parent, info){
     })
 
     gargoyle::on("done_edit", {
+
+      # require project directory
+      shiny::req(info$proj_dir)
 
       decisions_file$path <- fs::path(
         info$proj_dir, "02_decisions", "03_decisions", "01_hhold",
