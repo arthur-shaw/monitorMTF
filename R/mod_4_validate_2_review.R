@@ -14,10 +14,7 @@ mod_4_validate_2_review_ui <- function(id) {
 # TODO: put summary info here
 # card?
 
-    # bslib::card(
-
-
-    # ),
+    shiny::uiOutput(outputId = ns("overview_card")),
     bslib::accordion(
       id = ns("review_steps"),
       bslib::accordion_panel(
@@ -54,6 +51,34 @@ mod_4_validate_2_review_server <- function(id, parent, info){
     ns <- session$ns
 
     # ==========================================================================
+    # initialize page
+    # ==========================================================================
+
+    gargoyle::on("load_project", {
+
+      shiny::req(
+        info$proj_dir,
+        info$n_to_reject, info$n_to_review, info$n_to_follow_up
+      )
+
+      output$overview_card <- shiny::renderUI(
+
+        bslib::card(
+          bslib::card_header(
+            "Overview of validation results"
+          ),
+          bslib::card_body(
+            htmltools::p(glue::glue("To reject ❌: {info$n_to_reject}")),
+            htmltools::p(glue::glue("To review 🔍: {info$n_to_review}")),
+            htmltools::p(glue::glue("To follow up 😕: {info$n_to_follow_up}"))
+          )
+        )
+
+      )
+
+    })
+
+    # ==========================================================================
     # load server logic definitions of child modules
     # ==========================================================================
 
@@ -78,6 +103,34 @@ mod_4_validate_2_review_server <- function(id, parent, info){
     # ==========================================================================
 
     # TODO: simply close panel in which save button pressed?
+
+    # ==========================================================================
+    # update content of the overview card
+    # ==========================================================================
+
+    gargoyle::on("done_validate", {
+
+      shiny::req(
+        info$proj_dir,
+        info$n_to_reject, info$n_to_review, info$n_to_follow_up
+      )
+
+      output$overview_card <- shiny::renderUI(
+
+        bslib::card(
+          bslib::card_header(
+            "Overview of validation results"
+          ),
+          bslib::card_body(
+            htmltools::p(glue::glue("To reject ❌: {info$n_to_reject}")),
+            htmltools::p(glue::glue("To review 🔍: {info$n_to_review}")),
+            htmltools::p(glue::glue("To follow up 😕: {info$n_to_follow_up}"))
+          )
+        )
+
+      )
+
+    })
 
   })
 }
