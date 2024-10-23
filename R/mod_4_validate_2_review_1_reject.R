@@ -41,6 +41,9 @@ mod_4_validate_2_review_1_reject_server <- function(id, parent, info){
 
     gargoyle::on("load_project", {
 
+      # require inputs
+      shiny::req(info$proj_dir)
+
       # set the path once project is loaded
       to_reject_file$path <- fs::path(
         info$proj_dir, "02_decisions", "02_recommendations", "01_hhold",
@@ -54,15 +57,23 @@ mod_4_validate_2_review_1_reject_server <- function(id, parent, info){
 
     gargoyle::on("done_validate", {
 
+      # require inputs
+      shiny::req(info$proj_dir)
+
+      # set path to file
       to_reject_file$path <- fs::path(
         info$proj_dir, "02_decisions", "02_recommendations", "01_hhold",
         "to_reject_api.dta"
       )
 
+      # determine whether the file exists in the project
       to_reject_file$exists <- fs::file_exists(to_reject_file$path)
+
     })
 
     output$to_reject <- rhandsontable::renderRHandsontable({
+
+      shiny::req(to_reject_file$path)
 
       if (to_reject_file$exists == FALSE) {
         NULL
