@@ -761,14 +761,8 @@ create_attributes <- function(
   # ----------------------------------------------------------------------------
 
   attrib_stove_safety_na <- main_stove |>
-    dplyr::mutate(
-      stove_safety_na = dplyr::if_any(
-        .cols = dplyr::matches("SEC_G_Q23__"),
-        .fns = ~ haven::is_tagged_na(.x, tag = "a")
-      )
-    ) |>
-    susoreview::extract_attribute(
-      var = stove_safety_na,
+    susoreview::create_attribute(
+      condition = haven::is_tagged_na(SEC_G_Q23, tag = "a"),
       attrib_name = "stove_safety_na",
       attrib_vars = "SEC_G_Q23"
     )
