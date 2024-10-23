@@ -33,11 +33,11 @@ mod_4_validate_ui <- function(id){
         value = "3_reject",
         mod_4_validate_3_reject_ui(ns("4_validate_3_reject_1"))
       ),
-      bslib::accordion_panel(
-        title = "4. Report",
-        value = "4_report",
-        mod_4_validate_4_report_ui(ns("4_validate_4_report_1"))
-      ),
+      # bslib::accordion_panel(
+      #   title = "4. Report",
+      #   value = "4_report",
+      #   mod_4_validate_4_report_ui(ns("4_validate_4_report_1"))
+      # ),
     )
 
   )
