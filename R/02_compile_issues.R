@@ -555,9 +555,9 @@ create_issues <- function(attributes) {
     type = 1,
     desc = "Harm/injury for main cook",
     comment = paste(
-      "ERROR: What exhaust system not answered.",
+      "ERROR: What harm/injury from main stove not answered.",
       "First, navigate to section G.",
-      "Next, record an answer for question 15.",
+      "Next, record an answer for question 23.",
       "Then, resubmit the interview.",
       sep = " "
     )
