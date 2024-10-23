@@ -13,11 +13,11 @@ mod_5_report_ui <- function(id){
 
     bslib::accordion(
       id = ns("reports"),
-      bslib::accordion_panel(
-        title = "Completeness",
-        value = "completeness_panel",
-        mod_5_report_1_completeness_ui(ns("5_report_1_completeness_1"))
-      ),
+      # bslib::accordion_panel(
+      #   title = "Completeness",
+      #   value = "completeness_panel",
+      #   mod_5_report_1_completeness_ui(ns("5_report_1_completeness_1"))
+      # ),
       bslib::accordion_panel(
         title = "Quality",
         value = "quality_panel",
