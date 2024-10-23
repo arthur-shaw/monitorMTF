@@ -69,7 +69,7 @@ mod_4_validate_2_review_1_follow_up_server <- function(id, parent, info){
 
     output$to_follow_up <- reactable::renderReactable({
 
-      shiny::req(to_review_file$path)
+      shiny::req(to_follow_up_file$path)
 
       if (to_follow_up_file$exists == FALSE) {
         NULL
