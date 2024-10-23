@@ -112,8 +112,15 @@ mod_4_validate_2_review_1_reject_server <- function(id, parent, info){
 
         } else if (n_to_reject > 0) {
 
-          # compose interactive display table
-          rhandsontable::rhandsontable(data = to_reject_df) |>
+          shiny::req(to_reject_df)
+
+          # compose interactive disp lay table
+          rhandsontable::rhandsontable(
+            data = to_reject_df,
+            colHeaders = c(
+              "Interview", "Rejection reason(s)", "Interview status"
+            )
+          ) |>
             # dictate read and write access of columns
             # read only: values of selected variables
             rhandsontable::hot_col(
