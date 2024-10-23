@@ -37,6 +37,9 @@ mod_4_validate_2_review_1_follow_up_server <- function(id, parent, info){
 
     gargoyle::on("load_project", {
 
+      # require inputs
+      shiny::req(info$proj_dir)
+
       # set the path once project is loaded
       to_follow_up_file$path <- fs::path(
         info$proj_dir, "02_decisions", "02_recommendations", "01_hhold",
@@ -50,6 +53,9 @@ mod_4_validate_2_review_1_follow_up_server <- function(id, parent, info){
 
     gargoyle::on("done_validate", {
 
+      # require inputs
+      shiny::req(info$proj_dir)
+
       # set the path once project is loaded
       to_follow_up_file$path <- fs::path(
         info$proj_dir, "02_decisions", "02_recommendations", "01_hhold",
@@ -62,6 +68,8 @@ mod_4_validate_2_review_1_follow_up_server <- function(id, parent, info){
     })
 
     output$to_follow_up <- reactable::renderReactable({
+
+      shiny::req(to_review_file$path)
 
       if (to_follow_up_file$exists == FALSE) {
         NULL
