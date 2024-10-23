@@ -82,16 +82,45 @@ mod_4_validate_2_review_1_reject_server <- function(id, parent, info){
         to_reject_df <- haven::read_dta(file = to_reject_file$path) |>
           haven::zap_label() |>
           haven::zap_labels() |>
-          haven::zap_widths()
+          haven::zap_widths() |>
+          # construct a URL for each interview
+          # perform row-wise since httr's functions aren't vectorized
+          dplyr::rowwise() |>
+          dplyr::mutate(
+            interview_url = httr::modify_url(
+              url = info$server,
+              path = fs::path(
+                info$workspace, "Interview", "Review", interview__id
+              )
+            ),
+            # compose the URL with glue
+            # recast to character in order to drop the additional glue class
+            # that poses problems for rhandsontable's conversion back to R
+            interview_url = glue::glue('<a href="{interview_url}" target="_blank">{interview__id}</a>'),
+            interview_url = as.character(interview_url)
 
+          ) |>
+          dplyr::ungroup() |>
+          # move columns
+          dplyr::relocate(interview_url, .before = 1)	|>
+          dplyr::select(-interview__id)
+	
+# browser()
         n_to_reject <- nrow(to_reject_df)
 
         if (n_to_reject == 0) {
 
         } else if (n_to_reject > 0) {
 
-          # compose interactive display table
-          rhandsontable::rhandsontable(data = to_reject_df) |>
+          shiny::req(to_reject_df)
+
+          # compose interactive disp lay table
+          rhandsontable::rhandsontable(
+            data = to_reject_df,
+            colHeaders = c(
+              "Interview", "Rejection reason(s)", "Interview status"
+            )
+          ) |>
             # dictate read and write access of columns
             # read only: values of selected variables
             rhandsontable::hot_col(
@@ -109,10 +138,15 @@ mod_4_validate_2_review_1_reject_server <- function(id, parent, info){
               # note also: `wordWrap` isn't supported, but text in the cells
               # still appear to wrap
               colWidths = c(
-                250,  # interview__id
+                300,  # interview_url
                 600,  # reject_comment
                 150   # interview__status
               )
+            ) |>
+            # show url as a link that opens in a new window
+            rhandsontable::hot_col(
+              col = 1,
+              renderer = htmlwidgets::JS("safeHtmlRenderer")
             )
 
         }
@@ -129,7 +163,16 @@ mod_4_validate_2_review_1_reject_server <- function(id, parent, info){
     shiny::observeEvent(input$save, {
 
       # extract data frame from table
-      to_reject_edited <- rhandsontable::hot_to_r(input$to_reject)
+      # reconstruct the interview ID from the URL
+      to_reject_edited <- rhandsontable::hot_to_r(input$to_reject) |>
+        dplyr::mutate(
+          interview__id = stringr::str_extract(
+            string = interview_url,
+            pattern = "(?<=>).+?(?=</)"
+          ),
+          .before = 1
+        ) |>
+        dplyr::select(interview__id, reject_comment, interview__status)
 
       # write it to disk
       haven::write_dta(

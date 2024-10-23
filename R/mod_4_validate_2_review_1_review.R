@@ -78,8 +78,11 @@ mod_4_validate_2_review_1_review_server <- function(id, parent, info){
         # TODO: make this reactive
         to_review_df <- haven::read_dta(file = to_review_file$path) |>
           # remove variable label and width attributes, keeping labels
+          # perform row-wise since httr's functions aren't vectorized
           haven::zap_label() |>
           haven::zap_widths() |>
+          # construct metadata for each interview
+          dplyr::rowwise() |>
           dplyr::mutate(
             # construct a URL for each interview
             interview_url = httr::modify_url(
@@ -92,8 +95,9 @@ mod_4_validate_2_review_1_review_server <- function(id, parent, info){
             interview__status = haven::as_factor(
               interview__status, levels = "both"
             )
-          )
-
+          ) |>
+          dplyr::ungroup()
+# browser()
         reactable::reactable(
           data = to_review_df,
           columns = list(
