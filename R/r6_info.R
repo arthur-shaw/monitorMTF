@@ -62,6 +62,10 @@ info <- R6::R6Class(
     # interview statuses to validate
     statuses_to_validate_provided = NULL,
     statuses_to_validate = NULL,
+    # results of validation
+    n_to_reject = NULL,
+    n_to_review = NULL,
+    n_to_follow_up = NULL,
 
     #' @description
     #' Read past R6 values from disk

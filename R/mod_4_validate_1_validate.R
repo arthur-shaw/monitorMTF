@@ -107,6 +107,33 @@ mod_4_validate_1_validate_server <- function(id, parent, info){
         write_df_list_to_disk(df_list = decisions, dir = dirs$recommend_hh)
 
         # ----------------------------------------------------------------------
+        # compute counts of interviews to review
+        # ----------------------------------------------------------------------
+
+        # number to reject
+        n_to_reject <- fs::path(dirs$recommend_hh, "to_reject_api.dta") |>
+          haven::read_dta() |>
+          nrow()
+
+        # number to review
+        n_to_review <- fs::path(dirs$recommend_hh, "to_review_api.dta") |>
+          haven::read_dta() |>
+          nrow()
+
+        # number to follow up
+        n_to_follow_up <- fs::path(dirs$recommend_hh, "to_follow_up_api.dta") |>
+          haven::read_dta() |>
+          nrow()
+
+        # capture counts in R6
+        info$n_to_reject <- n_to_reject
+        info$n_to_review <- n_to_review
+        info$n_to_follow_up <- n_to_follow_up 
+
+        # write R6 to disk
+        info$write()
+
+        # ----------------------------------------------------------------------
         # send signal that validation is complete
         # ----------------------------------------------------------------------
 
