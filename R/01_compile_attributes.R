@@ -705,13 +705,13 @@ create_attributes <- function(
   # exhaust system
   attrib_exhaust_sys_na <- main_stove |>
     dplyr::mutate(
-      exaust_sys_na = dplyr::if_all(
+      exhaust_sys_na = dplyr::if_all(
         .cols = dplyr::matches("SEC_G_Q15__"),
         .fns = ~ haven::is_tagged_na(.x, tag = "a")
       )
     ) |>
     susoreview::extract_attribute(
-      var = exaust_sys_na,
+      var = exhaust_sys_na,
       attrib_name = "exaust_sys_na",
       attrib_vars = "SEC_G_Q15"
     )
