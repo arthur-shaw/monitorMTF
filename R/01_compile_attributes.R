@@ -500,7 +500,7 @@ create_attributes <- function(
       attrib_name = "owns_elec_asset",
       attrib_vars = "SEC_F_Q01"
     )
-browser()
+
   # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
   # Own asset with heavy and/or continuous draw
   # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
