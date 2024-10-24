@@ -478,8 +478,21 @@ create_attributes <- function(
     susoreview::create_attribute(
       df = dplyr::mutate(
         .data = hholds,
+        # exclude battery-based assets
+        # 5 - Torch/flashlight/lantern (using dry-cell battery)
+        # 6 - Radio/CD Players/sound system (using dry-cell battery)
+        # solar-based assets
+        # 25 - Solar-based water heater
+        # 36 - Solar-based water pump
+        # other assets of unknown power source
+        # 555 - Other, specify
         owns_elec_asset = dplyr::if_any(
-          .cols = dplyr::matches("SEC_F_Q01__"),
+          .cols = c(
+            dplyr::matches("SEC_F_Q01__[1-4]$"),
+            dplyr::matches("SEC_F_Q01__1[0-9]$"),
+            dplyr::matches("SEC_F_Q01__(2[1-4]|2[6-9])$"),
+            dplyr::matches("SEC_F_Q01__3[1-5]$")
+          ),
           .fns = ~ .x == 1
         )
       ),
@@ -487,7 +500,7 @@ create_attributes <- function(
       attrib_name = "owns_elec_asset",
       attrib_vars = "SEC_F_Q01"
     )
-
+browser()
   # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
   # Own asset with heavy and/or continuous draw
   # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
