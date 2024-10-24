@@ -122,9 +122,9 @@ mod_4_validate_2_review_server <- function(id, parent, info){
             "Overview"
           ),
           bslib::card_body(
-            htmltools::p(glue::glue("To reject: {info$n_to_reject}")),
-            htmltools::p(glue::glue("To review: {info$n_to_review}")),
-            htmltools::p(glue::glue("To follow up: {info$n_to_follow_up}"))
+            htmltools::p(glue::glue("To reject ❌: {info$n_to_reject}")),
+            htmltools::p(glue::glue("To review 🔍: {info$n_to_review}")),
+            htmltools::p(glue::glue("To follow up 😕: {info$n_to_follow_up}"))
           )
         )
 
