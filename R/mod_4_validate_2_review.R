@@ -68,9 +68,18 @@ mod_4_validate_2_review_server <- function(id, parent, info){
             "Overview of validation results"
           ),
           bslib::card_body(
-            htmltools::p(glue::glue("To reject ❌: {info$n_to_reject}")),
-            htmltools::p(glue::glue("To review 🔍: {info$n_to_review}")),
-            htmltools::p(glue::glue("To follow up 😕: {info$n_to_follow_up}"))
+            htmltools::p(
+              bsicons::bs_icon(name = "clipboard-x"),
+              glue::glue("To reject : {info$n_to_reject}")
+            ),
+            htmltools::p(
+              bsicons::bs_icon(name = "zoom-in"),
+              glue::glue("To review : {info$n_to_review}")
+            ),
+            htmltools::p(
+              bsicons::bs_icon(name = "chat-left-dots"),
+              glue::glue("To follow up : {info$n_to_follow_up}")
+            )
           )
         )
 
