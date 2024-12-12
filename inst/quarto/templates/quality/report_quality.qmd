@@ -1887,7 +1887,10 @@ TODO: table with distributions of morning, afternoon, and evening
 
 #### Preparing stove
 
-TODO
+```{r}
+#| label: prevalence of DK
+
+```
 
 #### Gathering fuel
 
@@ -1900,7 +1903,3 @@ N/A
 ### Affordability
 
 TODO: get clarifications on tables to produce
-
-### Availability
-
-TODO: get clarity on which variable(s), if any, measure availability. If `SEC_G_Q17`, nothing to measure.
