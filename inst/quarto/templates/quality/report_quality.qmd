@@ -109,6 +109,107 @@ compute_pct <- function(df, num, denom) {
 
 }
 
+#' Plot distribution of variable
+#'
+#' @description Compute and plot density of a variable by
+#' - Replacing DK values with missing, to avoid skewing distribution
+#' - Computing the full-sample data range that that the plot should cover
+#' - Filtering to observations in the target group
+#' - Producing either a violin plot or an empty plot, depending on the number
+#' of non-NA values found in the group
+#'
+#' @param df Data frame.
+#' @param var Bare name of target variable in the data frame.
+#' @param group_var Bare name of group variable.
+#' @param group_name Character. Name of group for which produce a plot.
+#' @param fill_color Character. Valid name or hex code for ggplot's fill color
+#' attribute.
+#'
+#' @return ggplot2 plot
+#'
+#' @importFrom dplyr mutate if_else pull filter
+#' @importFrom rlang enquo
+#' @import ggplot2
+plot_group_density <- function(
+  df,
+  var,
+  group_var,
+  group_name,
+  dk_val = -888,
+  fill_color
+) {
+
+  # replace DK with NA
+  df_mod <- df |>
+    dplyr::mutate(
+      !!rlang::enquo(var) := dplyr::if_else(
+        condition = {{var}} == dk_val,
+        true = NA,
+        false = {{var}}
+      )
+    )
+
+  # compute range of variable
+  full_range <- df_mod |>
+    dplyr::pull({{var}}) |>
+    range(na.rm = TRUE)
+  
+  # filter to the group of interest
+  df_filtered <- df_mod |>
+	  dplyr::filter({{group_var}} == group_name)
+  
+  # use all observations for "overall" group
+  if (group_name == "Overall") {
+    df_filtered <- df_mod |>
+      dplyr::mutate(!!rlang::enquo(group_var) := "Overall")
+  }
+
+  # compute range of group
+  filtered_range <- dplyr::pull(df_filtered, {{var}})
+
+  # get number of non-NA values
+  n_non_na <- filtered_range[!is.na(filtered_range)] |>
+    length()
+
+  # if more than 5 non-NA obs, plot density
+  # otherwise, return a blank plot
+  if (n_non_na > 5) {
+
+    plot <- df_filtered |>
+      ggplot2::ggplot(ggplot2::aes(x = {{var}}, y = {{group_var}})) +
+      ggplot2::geom_violin(fill = fill_color) +
+      ggplot2::theme_minimal() +
+      ggplot2::scale_y_discrete(breaks = NULL) +
+      ggplot2::scale_x_continuous(breaks = NULL) +
+      ggplot2::labs(
+        x = ggplot2::element_blank(),
+        y = ggplot2::element_blank()
+      ) +
+      # set coordinates to be full range of data
+      # not just range for the group
+      ggplot2::coord_cartesian(xlim = full_range)
+
+  } else {
+
+    plot <- df_filtered |>
+      ggplot2::ggplot(ggplot2::aes(x = {{var}}, y = {{group_var}})) +
+      ggplot2::geom_blank() +
+      ggplot2::theme_minimal() +
+      ggplot2::scale_y_discrete(breaks = NULL) +
+      ggplot2::scale_x_continuous(breaks = NULL) +
+      ggplot2::labs(
+        x = ggplot2::element_blank(),
+        y = ggplot2::element_blank()
+      ) +
+      # set coordinates to be full range of data
+      # not just range for the group
+      ggplot2::coord_cartesian(xlim = full_range)
+    
+  }
+
+  return(plot)
+
+}
 
 reactable_style <- reactable::reactableTheme(
   headerStyle = list(color = "#ffffff", background = "#6f3996")
