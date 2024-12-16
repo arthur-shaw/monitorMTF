@@ -2000,7 +2000,7 @@ time_spent_prep_stove_by_team <- time_spent_prep_stove |>
     max = max(SEC_G_Q18, na.rm = TRUE),
     med = median(SEC_G_Q18, na.rm = TRUE)
   ) |>
-	dplyr::group_by(supervisor) |>
+	dplyr::ungroup() |>
 	dplyr::select(supervisor, n_obs, is_dk, min, med, max)
 
 time_spent_prep_stove_overall <- time_spent_prep_stove |>
