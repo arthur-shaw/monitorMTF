@@ -1968,6 +1968,119 @@ if (nrow(oth_stove_txt) > 0) {
 
 #### Contact time
 
+```{r}
+#| label: time spent preparing main stove, prevalence of DK and distribution
+
+time_spent_prep_stove <- supervisor_interviewer_interview |>
+  dplyr::left_join(
+    y = main_stove,
+    by = c("interview__id", "interview__key")
+  ) |>
+  dplyr::mutate(
+    n_obs = !is.na(SEC_G_Q18),
+    is_dk = (SEC_G_Q18 == -888),
+    SEC_G_Q18 = dplyr::if_else(
+      condition = is_dk == TRUE,
+      true = NA,
+      false = SEC_G_Q18
+    )
+  ) |>
+	dplyr::select(supervisor, interview__id, n_obs, is_dk, SEC_G_Q18)
+
+time_spent_prep_stove_by_team <- time_spent_prep_stove |>
+  dplyr::group_by(supervisor) |>
+	dplyr::summarize(
+    dplyr::across(
+      .cols = c(n_obs, is_dk),
+      .fns = ~ sum(.x, na.rm = TRUE)
+    ),
+    min = min(SEC_G_Q18, na.rm = TRUE),
+    max = max(SEC_G_Q18, na.rm = TRUE),
+    med = median(SEC_G_Q18, na.rm = TRUE)
+  ) |>
+	dplyr::group_by(supervisor) |>
+	dplyr::select(supervisor, n_obs, is_dk, min, med, max)
+
+time_spent_prep_stove_overall <- time_spent_prep_stove |>
+	dplyr::summarize(
+    dplyr::across(
+      .cols = c(n_obs, is_dk),
+      .fns = ~ sum(.x, na.rm = TRUE)
+    ),
+    min = min(SEC_G_Q18, na.rm = TRUE),
+    max = max(SEC_G_Q18, na.rm = TRUE),
+    med = median(SEC_G_Q18, na.rm = TRUE)
+  ) |>
+  dplyr::mutate(supervisor = "Overall") |>
+	dplyr::select(supervisor, n_obs, is_dk, min, med, max)
+
+time_spent_prep_stove_stats <- time_spent_prep_stove_overall |>
+  dplyr::bind_rows(time_spent_prep_stove_by_team) |>
+  compute_pct(num = is_dk, denom = n_obs) |>
+  dplyr::rename(pct_dk = is_dk) |>
+	dplyr::mutate(
+    dplyr::across(
+      .cols = c(min, med, max),
+      .fns = ~ dplyr::if_else(
+        condition = is.infinite(.x),
+        true = NA,
+        false = .x
+      )
+    ),
+    group = supervisor
+  ) |>
+	dplyr::select(supervisor, n_obs, pct_dk, min, med, max, group)
+
+time_spent_prep_stove_table <- time_spent_prep_stove_stats |>
+	gt::gt(rowname_col = "supervisor") |>
+	gt::tab_header(title = "Time spent, by team") |>
+  gt::cols_label(
+    n_obs = gt::html("Obs<br>(N)"),
+    pct_dk = gt::html("DK<br>(%)"),
+    min = "Min.",
+    med = "Med.",
+    max = "Max.",
+    group = "Distribution"
+  ) |>
+  gt::fmt_integer(columns = n_obs) |>
+  gt::fmt_percent(
+    columns = pct_dk,
+    decimals = 1
+  ) |>
+	gt::fmt_number(
+    columns = c(min, med, max),
+    decimals = 2
+  ) |>
+	gt::text_transform(
+    locations = gt::cells_body(columns = c(group)),
+    fn = function(x) {
+      # produce a density plot by group whose name
+      # appears in the `group` column
+      purrr::map(
+        .x = x, 
+        .f = ~ plot_group_density(
+          df = time_spent_prep_stove,
+          var = SEC_G_Q18,
+          group_var = supervisor,
+          group_name = .x,
+          dk_val = -888,
+          fill_color = "#413996"
+        )
+      ) |>
+      # embed the plot as an image in the gt table
+      gt::ggplot_image(
+        height = gt::px(50),
+        aspect_ratio = 3
+      )
+
+    }
+  ) |>
+	gt::sub_missing() |>
+	gt::tab_options(heading.background.color = "#6f3996")
+
+time_spent_prep_stove_table	
+```
+
 ##### Total time in kitchen
 
 TODO
