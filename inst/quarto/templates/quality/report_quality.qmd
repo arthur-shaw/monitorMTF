@@ -226,7 +226,8 @@ files <- c(
   "Solar_C_Device.dta",
   "appliances.dta",
   "cookstoves.dta",
-  "fuel_consumption.dta"
+  "fuel_consumption.dta",
+  "time_collecting.dta"
 )
 
 names <- c(
@@ -236,7 +237,8 @@ names <- c(
   "solar_systems",
   "appliances",
   "stoves",
-  "fuels"
+  "fuels",
+  "time_collecting"
 )
 
 # create a list of data
@@ -2108,7 +2110,193 @@ TODO: table with distributions of morning, afternoon, and evening
 
 #### Gathering fuel
 
-TODO, but need clarification on how to attribute fuel time to a stove
+```{r}
+#| label: prepare time collecting data
+
+time_collecting_fuel <- supervisor_interviewer_interview |>
+	dplyr::left_join(dfs_filtered$time_collecting, by = c("interview__id", "interview__key")) |>
+  dplyr::mutate(
+    n_obs = !is.na(time_collecting__id),
+    is_dk_get = SEC_I_Q12 == -888,
+    is_dk_prep = SEC_I_Q14 == -888
+  ) |>
+	dplyr::select(
+    supervisor, interview__id, n_obs, is_dk_get, is_dk_prep,
+    get = SEC_I_Q12, prep = SEC_I_Q14
+  )
+
+time_collecting_by_team <- time_collecting_fuel |>
+  dplyr::group_by(supervisor) |>
+	dplyr::summarize(
+    dplyr::across(
+      .cols = c(n_obs, is_dk_get, is_dk_prep),
+      .fns = ~ sum(.x, na.rm = TRUE)
+    ),
+    dplyr::across(
+      .cols = c(get, prep),
+      .fns = list(
+        min = ~ min(.x, na.rm = TRUE),
+        med = ~ median(.x, na.rm = TRUE),
+        max = ~ max(.x, na.rm = TRUE)
+      ),
+      .names = "{.fn}_{.col}"
+    )
+  ) |>
+	dplyr::ungroup() |>
+	dplyr::select(
+    supervisor, n_obs,
+    dplyr::starts_with("is_dk"),
+    dplyr::starts_with("min"),
+    dplyr::starts_with("med"),
+    dplyr::starts_with("max")
+  )
+
+time_collecting_overall <- time_collecting_fuel |>
+	dplyr::summarize(
+    dplyr::across(
+      .cols = c(n_obs, is_dk_get, is_dk_prep),
+      .fns = ~ sum(.x, na.rm = TRUE)
+    ),
+    dplyr::across(
+      .cols = c(get, prep),
+      .fns = list(
+        min = ~ min(.x, na.rm = TRUE),
+        med = ~ median(.x, na.rm = TRUE),
+        max = ~ max(.x, na.rm = TRUE)
+      ),
+      .names = "{.fn}_{.col}"
+    ),
+    supervisor = "Overall"
+  ) |>
+	dplyr::select(
+    supervisor, n_obs,
+    dplyr::starts_with("is_dk"),
+    dplyr::starts_with("min"),
+    dplyr::starts_with("med"),
+    dplyr::starts_with("max")
+  )
+
+time_collecting_stats <- time_collecting_overall |>
+	dplyr::bind_rows(time_collecting_by_team) |>
+  compute_pct(num = is_dk_get, denom = n_obs) |>
+  compute_pct(num = is_dk_prep, denom = n_obs) |>
+  dplyr::rename(
+    pct_dk_get = is_dk_get,
+    pct_dk_prep = is_dk_prep
+  ) |>
+	dplyr::mutate(
+    dplyr::across(
+      .cols = c(
+        dplyr::starts_with("min"),
+        dplyr::starts_with("med"),
+        dplyr::starts_with("max")
+      ),
+      .fns = ~ dplyr::if_else(
+        condition = is.infinite(.x),
+        true = NA,
+        false = .x
+      )
+    ),
+    distrib_get = supervisor,
+    distrib_prep = supervisor
+  ) |>
+  dplyr::select(
+    supervisor, n_obs,
+    pct_dk_get, min_get, med_get, max_get, distrib_get,
+    pct_dk_prep, min_prep, med_prep, max_prep, distrib_prep
+  )
+
+time_collecting_table <- 	time_collecting_stats |>
+	gt::gt(rowname_col = "supervisor") |>
+	gt::tab_header(title = "Time spent gathering fuel, by team") |>
+  gt::cols_label(
+    n_obs = gt::html("Obs<br>(N)"),
+    pct_dk_get = gt::html("DK<br>(%)"),
+    min_get = "Min.",
+    med_get = "Med.",
+    max_get = "Max.",
+    distrib_get = "Distribution",
+    pct_dk_prep = gt::html("DK<br>(%)"),
+    min_prep = "Min.",
+    med_prep = "Med.",
+    max_prep = "Max.",
+    distrib_prep = "Distribution"
+  ) |>
+  gt::fmt_integer(columns = n_obs) |>
+  gt::fmt_percent(
+    columns = dplyr::starts_with("pct_"),
+    decimals = 1
+  ) |>
+	gt::fmt_number(
+    columns = c(
+      dplyr::starts_with("min"),
+      dplyr::starts_with("med"),
+      dplyr::starts_with("max")
+    ),
+    decimals = 2
+  ) |>
+  # distribution of "get"
+	gt::text_transform(
+    locations = gt::cells_body(columns = c(distrib_get)),
+    fn = function(x) {
+      # produce a density plot by group whose name
+      # appears in the `group` column
+      purrr::map(
+        .x = x, 
+        .f = ~ plot_group_density(
+          df = time_collecting_fuel,
+          var = get,
+          group_var = supervisor,
+          group_name = .x,
+          dk_val = -888,
+          fill_color = "#413996"
+        )
+      ) |>
+      # embed the plot as an image in the gt table
+      gt::ggplot_image(
+        height = gt::px(50),
+        aspect_ratio = 3
+      )
+    }
+  ) |>
+  # distribution of "prep"
+	gt::text_transform(
+    locations = gt::cells_body(columns = c(distrib_prep)),
+    fn = function(x) {
+      # produce a density plot by group whose name
+      # appears in the `group` column
+      purrr::map(
+        .x = x, 
+        .f = ~ plot_group_density(
+          df = time_collecting_fuel,
+          var = prep,
+          group_var = supervisor,
+          group_name = .x,
+          dk_val = -888,
+          fill_color = "#413996"
+        )
+      ) |>
+      # embed the plot as an image in the gt table
+      gt::ggplot_image(
+        height = gt::px(50),
+        aspect_ratio = 3
+      )
+    }
+  ) |>
+	gt::sub_missing() |>
+	gt::tab_options(heading.background.color = "#6f3996") |>
+	gt::tab_spanner(
+    label = "Acquisition",
+    columns = dplyr::ends_with("_get")
+  ) |>
+	gt::tab_spanner(
+    label = "Preparation",
+    columns = dplyr::ends_with("_prep")
+  )
+	
+
+time_collecting_table
+```
 
 ### Safety
 
