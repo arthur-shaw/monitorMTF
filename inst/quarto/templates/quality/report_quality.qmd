@@ -730,85 +730,91 @@ coding_stats <- coding_overall |>
     pct_bottom_night, pct_top_night,
   )
 
-reactable::reactable(
-  data = dplyr::select(coding_stats, -val_day, -val_night),
-  columns = list(
-    source = reactable::colDef(name = "Source"),
-    # day
-    pct_bottom_day = reactable::colDef(
-      name = "Bottom<br>(%)",
-      format = reactable::colFormat(
-        percent = TRUE,
-        digits = 1
-      ),
-      html = TRUE,
-      na = "-"
-    ),
-    pct_top_day = reactable::colDef(
-      name = "Top<br>(%)",
-      format = reactable::colFormat(
-        percent = TRUE,
-        digits = 1
-      ),
-      html = TRUE,
-      na = "-"
-    ),
-    # val_day = reactable::colDef(
-    #   name = "Distribution",
-    #   width = 400,
-    #   cell = function(value, index) {
-    #     dataui::dui_histogram(
-    #       rawData = value,
-    #       components = list(
-    #         dataui::dui_densityseries(
-    #           data = value,
-    #           binType = "density",
-    #           fill = "#69b3a2"
-    #         )
-    #       )
-    #     )
-    #   }
-    # ),
-    # night
-    pct_bottom_night = reactable::colDef(
-      name = "Bottom<br>(%)",
-      format = reactable::colFormat(
-        percent = TRUE,
-        digits = 1
-      ),
-      html = TRUE,
-      na = "-"
-    ),
-    pct_top_night = reactable::colDef(
-      name = "Top<br>(%)",
-      format = reactable::colFormat(
-        percent = TRUE,
-        digits = 1
-      ),
-      html = TRUE,
-      na = "-"
-    )
-    #endregion ,
-    # val_night = reactable::colDef(
-    #   name = "Distribution",
-    #   width = 400,
-    #   cell = function(value, index) {
-    #     dataui::dui_histogram(
-    #       rawData = value,
-    #       components = list(
-    #         dataui::dui_densityseries(
-    #           data = value,
-    #           binType = "density",
-    #           fill = "#69b3a2"
-    #         )
-    #       )
-    #     )
-    #   }
-    # )
-  ),
-  theme = reactable_style
-)
-	
+avail_top_bottom_table <- coding_stats |>
+  # add columns for distributions
+  dplyr::mutate(
+    distrib_day = source,
+    distrib_night = source
+  ) |>
+  gt::gt(rowname_col = "source") |>
+  gt::tab_header(title = "Percent of hours of availability top- or bottom-coded, by team") |>
+	gt::cols_label(
+    n_obs = gt::html("Obs.<br>(N)"),
+    pct_bottom_day = gt::html("Bottom<br>(%)"),
+    pct_top_day = gt::html("Top<br>(%)"),
+    distrib_day = "Distribution",
+    pct_bottom_night = gt::html("Bottom<br>(%)"),
+    pct_top_night = gt::html("Top<br>(%)"),
+    distrib_night = "Distribution"
+  ) |>
+	gt::tab_spanner(
+    label = "Day",
+    columns = c(pct_bottom_day, pct_top_day, distrib_day)
+  ) |>
+	gt::tab_spanner(
+    label = "Night",
+    columns = c(pct_bottom_night, pct_top_night, distrib_night)
+  ) |>
+  gt::fmt_percent(
+    columns = dplyr::starts_with("pct_"),
+    decimals = 1,
+    scale_values = TRUE
+  ) |>
+	gt::fmt_integer(columns = n_obs) |>
+	gt::sub_missing() |>
+	gt::tab_options(
+    heading.background.color = "#6f3996",
+    column_labels.background.color = "#6f3996"
+  ) |>
+  # distribution of daytime values
+	gt::text_transform(
+    locations = gt::cells_body(columns = c(distrib_day)),
+    fn = function(x) {
+      # produce a density plot by group whose name
+      # appears in the `group` column
+      purrr::map(
+        .x = x, 
+        .f = ~ plot_group_density(
+          df = coding_dfs,
+          var = val_day,
+          group_var = source,
+          group_name = .x,
+          dk_val = -888,
+          fill_color = "#413996"
+        )
+      ) |>
+      # embed the plot as an image in the gt table
+      gt::ggplot_image(
+        height = gt::px(50),
+        aspect_ratio = 3
+      )
+    }
+  ) |>
+	gt::text_transform(
+    locations = gt::cells_body(columns = c(distrib_night)),
+    fn = function(x) {
+      # produce a density plot by group whose name
+      # appears in the `group` column
+      purrr::map(
+        .x = x, 
+        .f = ~ plot_group_density(
+          df = coding_dfs,
+          var = val_night,
+          group_var = source,
+          group_name = .x,
+          dk_val = -888,
+          fill_color = "#413996"
+        )
+      ) |>
+      # embed the plot as an image in the gt table
+      gt::ggplot_image(
+        height = gt::px(50),
+        aspect_ratio = 3
+      )
+    }
+  )
+
+avail_top_bottom_table
 ```
 
 #### Don't know
