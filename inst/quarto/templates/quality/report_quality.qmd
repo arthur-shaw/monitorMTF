@@ -709,7 +709,7 @@ coding_overall <- coding_dfs |>
 	dplyr::mutate(source = "Overall")
 
 coding_stats <- coding_overall |>
-	dplyr::bind_rows(coding_by_source ) |>
+	dplyr::bind_rows(coding_by_source) |>
   dplyr::mutate(
     dplyr::across(
       .cols = c(bottom_day, top_day, bottom_night, top_night),
