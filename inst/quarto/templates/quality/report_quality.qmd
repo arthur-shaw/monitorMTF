@@ -2304,11 +2304,3 @@ time_collecting_table <- 	time_collecting_stats |>
 
 time_collecting_table
 ```
-
-### Safety
-
-N/A
-
-### Affordability
-
-TODO: get clarifications on tables to produce
