@@ -676,8 +676,18 @@ solar_coding <- supervisor_interviewer_interview |>
   )
 
 coding_dfs <- dplyr::bind_rows(
-  grid_coding, mini_grid_coding, generator_coding, solar_coding
-)
+    grid_coding, mini_grid_coding, generator_coding, solar_coding
+  ) |>
+  # capitalize sources
+  dplyr::mutate(
+    source = dplyr::case_when(
+      source == "generator" ~ "Generator",
+      source == "grid" ~ "Grid",
+      source == "mini-grid" ~ "Mini-grid",
+      source == "solar" ~ "Solar",
+      TRUE ~ source
+    )
+  )
 
 coding_by_source <- coding_dfs |>
   dplyr::group_by(source) |>
