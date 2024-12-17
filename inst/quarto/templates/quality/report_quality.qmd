@@ -1227,7 +1227,7 @@ expenditure_items_counts <- supervisor_interviewer_interview |>
       false = n_food_items
     ),
     dplyr::across(
-      .cols = dplyr::starts_with("SEC_O_(One|Q12)_Month"),
+      .cols = dplyr::matches("SEC_O_(One|Q12)_Month"),
       .fns = ~ dplyr::case_when(
         .x == 1 ~ TRUE,
         .x != 1 & !is.na(interview__id) ~ FALSE,
@@ -1235,7 +1235,7 @@ expenditure_items_counts <- supervisor_interviewer_interview |>
       )
     ),
     n_non_food_items = rowSums(
-      dplyr::pick(dplyr::starts_with("SEC_O_(One|Q12)_Month")),
+      dplyr::pick(dplyr::matches("SEC_O_(One|Q12)_Month")),
       na.rm = TRUE
     ),
     n_non_food_items = dplyr::if_else(
