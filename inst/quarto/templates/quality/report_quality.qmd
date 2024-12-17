@@ -695,10 +695,6 @@ coding_by_source <- coding_dfs |>
     dplyr::across(
       .cols = c(n_obs, bottom_day, top_day, bottom_night, top_night),
       .fns = ~ sum(.x, na.rm = TRUE)
-    ),
-    dplyr::across(
-      .cols = c(val_day, val_night),
-      .fns = ~ list(.x)
     )
   ) |>
 	dplyr::ungroup()
@@ -708,13 +704,8 @@ coding_overall <- coding_dfs |>
     dplyr::across(
       .cols = c(n_obs, bottom_day, top_day, bottom_night, top_night),
       .fns = ~ sum(.x, na.rm = TRUE)
-    ),
-    dplyr::across(
-      .cols = c(val_day, val_night),
-      .fns = ~ list(.x)
     )
   ) |>
-	dplyr::ungroup() |>
 	dplyr::mutate(source = "Overall")
 
 coding_stats <- coding_overall |>
@@ -734,9 +725,9 @@ coding_stats <- coding_overall |>
     source,
     n_obs,
     # day
-    pct_bottom_day, pct_top_day, val_day,
+    pct_bottom_day, pct_top_day,
     # night
-    pct_bottom_night, pct_top_night, val_night
+    pct_bottom_night, pct_top_night,
   )
 
 reactable::reactable(
