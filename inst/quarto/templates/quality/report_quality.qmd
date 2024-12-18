@@ -394,7 +394,59 @@ main_stove <- dfs_filtered$hholds |>
 
 # Response rate
 
+```{r}
+#| label: response rate
+response_rate <- supervisor_interviewer_interview |>
+  dplyr::left_join(
+    y = dfs_raw[[1]],
+    by = c("interview__id", "interview__key")
+  ) |>
+	dplyr::mutate(
+    n_contacted = TRUE,
+    n_found = SEC_Cov_Q01 == 1,
+    n_eligible_resp = SEC_Cov_Q03 == 1,
+    n_consent = SEC_Cov_Q05 == 1
+  ) |>
+	dplyr::group_by(supervisor) |>
+	dplyr::summarize(
+    dplyr::across(
+      .cols = dplyr::starts_with("n_"),
+      .fns = ~ sum(.x, na.rm = TRUE)
+    )
+  ) |>
+	dplyr::ungroup() |>
+	dplyr::mutate(
+    dplyr::across(
+      .cols = c(n_found, n_eligible_resp, n_consent),
+      .fns = ~ .x / n_contacted,
+      .names = "pct_{.col}"
+    )
+  ) |>
+	dplyr::rename(
+    pct_found = pct_n_found,
+    pct_eligible_resp = pct_n_eligible_resp,
+    pct_consent = pct_n_consent
+  ) |>
+	dplyr::select(supervisor, n_contacted, pct_found, pct_eligible_resp, pct_consent)
 
+response_rate_table <- response_rate |>
+	gt::gt(rowname_col = "supervisor") |>
+	gt::tab_header(title = "Response rate") |>
+	gt::cols_label(
+    n_contacted = gt::html("Contacted<br>(N)"),
+    pct_found = gt::html("Located<br>(%)"),
+    pct_eligible_resp = gt::html("Got respondent<br>(%)"),
+    pct_consent = gt::html("Got consent<br>(%)")
+  ) |>
+  # format percentages without including % marker
+	gt::fmt_number(
+    columns = dplyr::starts_with("pct_"),
+    scale_by = 100,
+    decimals = 1
+  )
+
+response_rate_table
+```
 
 # Access to electricity
 
