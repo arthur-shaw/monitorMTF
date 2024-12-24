@@ -15,6 +15,10 @@ mod_4_validate_2_review_1_reject_ui <- function(id) {
       inputId = ns("save"),
       label = "Save"
     ),
+    shiny::downloadButton(
+      outputId = ns("download"),
+      label = "Download"
+    ),
     rhandsontable::rHandsontableOutput(outputId = ns("to_reject"))
 
   )
@@ -188,11 +192,52 @@ mod_4_validate_2_review_1_reject_server <- function(id, parent, info){
 
     })
 
+    # ==========================================================================
+    # react to download button
+    # ==========================================================================
+
+    output$download <- shiny::downloadHandler(
+      filename = "to_reject_details.dta",
+      content = function(file) {
+
+        # extract data frame from table
+        # reconstruct the interview ID from the URL
+        to_reject_edited <- rhandsontable::hot_to_r(input$to_reject) |>
+          dplyr::mutate(
+            interview__id = stringr::str_extract(
+              string = interview_url,
+              pattern = "(?<=>).+?(?=</)"
+            ),
+            .before = 1
+          ) |>
+          dplyr::select(interview__id, reject_comment, interview__status)
+
+        # specify path on disk, for later usage
+        to_reject_file_path <- fs::path(
+          info$proj_dir, "02_decisions", "03_decisions", "01_hhold",
+          "to_reject_detailed.dta"
+        )
+
+        # write it to disk, so that it can be served up to download handler
+        haven::write_dta(
+          data = to_reject_edited,
+          path = to_reject_file_path
+        )
+
+        # serve it up
+        fs::file_copy(
+          path = to_reject_file_path,
+          new_path = file
+        )
+
+      }
+    )
+
   })
 }
-    
+
 ## To be copied in the UI
 # mod_4_validate_2_review_1_reject_ui("4_validate_2_review_1_reject_1")
-    
+
 ## To be copied in the server
 # mod_4_validate_2_review_1_reject_server("4_validate_2_review_1_reject_1")

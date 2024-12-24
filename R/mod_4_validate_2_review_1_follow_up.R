@@ -11,6 +11,10 @@ mod_4_validate_2_review_1_follow_up_ui <- function(id) {
   ns <- NS(id)
   tagList(
 
+    shiny::downloadButton(
+      outputId = ns("download"),
+      label = "Download"
+    ),
     reactable::reactableOutput(outputId = ns("to_follow_up"))
 
   )
@@ -130,11 +134,28 @@ mod_4_validate_2_review_1_follow_up_server <- function(id, parent, info){
 
     })
 
+    # ==========================================================================
+    # react to download button
+    # ==========================================================================
+
+    output$download <- shiny::downloadHandler(
+      filename = "to_follow_up_details.dta",
+      content = function(file) {
+
+        # serve up file on disk from which display table is derived
+        fs::file_copy(
+          path = to_follow_up_file$path,
+          new_path = file
+        )
+
+      }
+    )
+
   })
 }
-    
+
 ## To be copied in the UI
 # mod_4_validate_2_review_1_follow_up_ui("4_validate_2_review_1_follow_up_1")
-    
+
 ## To be copied in the server
 # mod_4_validate_2_review_1_follow_up_server("4_validate_2_review_1_follow_up_1")
