@@ -252,7 +252,7 @@ combine_and_save_dta <- function(
 
   # apply variable labels
   df <- df |>
-    labelled::set_variable_labels(.labels = lbls)
+    labelled::set_variable_labels(.labels = lbls, .strict = FALSE)
 
   # save to destination directory
   haven::write_dta(data = df, path = fs::path(dir, name))
